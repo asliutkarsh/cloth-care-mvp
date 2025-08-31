@@ -1,0 +1,15 @@
+/* small helpers for layout */
+.container {
+	max-width: 1100px;
+	margin-left: auto;
+	margin-right: auto;
+	padding-left: 1rem;
+	padding-right: 1rem;
+}
+
+.logo-gradient {
+	background: linear-gradient(90deg,#2563eb,#06b6d4);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
