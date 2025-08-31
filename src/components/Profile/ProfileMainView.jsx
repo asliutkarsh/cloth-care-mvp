@@ -1,27 +1,18 @@
 import React from 'react';
 import { User, Camera, Edit3, Grid3x3, Settings as SettingsIcon } from 'lucide-react';
-import ClothesTabContent from './ClothesTabContent';
-import OutfitsTabContent from './OutfitsTabContent';
-import ActivityTabContent from './ActivityTabContent';
 import Button from '../common/Button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../common/Tabs';
 
 export default function ProfileMainView({
   userData,
   profileImage,
+  stats,
   onUploadImage,
   onGoCategories,
   onGoSettings,
   activeTab,
   setActiveTab,
-  filteredClothes,
-  categories,
-  selectedFilter,
-  setSelectedFilter,
-  showFilters,
-  setShowFilters,
-  outfits,
-  activity,
+  children,
 }) {
   return (
     <div className="max-w-6xl mx-auto p-4 pb-24">
@@ -65,20 +56,22 @@ export default function ProfileMainView({
             </div>
 
             {/* Quick Stats - Desktop */}
-            <div className="hidden md:flex gap-6 ml-auto">
-              <div className="text-center">
-                <div className="text-xl font-bold text-blue-600">{userData.totalClothes}</div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">Clothes</div>
+            {stats && (
+              <div className="hidden md:flex gap-6 ml-auto">
+                <div className="text-center">
+                  <div className="text-xl font-bold text-blue-600">{stats.totalClothes}</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Clothes</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-green-600">{stats.totalOutfits}</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Outfits</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-purple-600">{stats.totalActivities}</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Activities</div>
+                </div>
               </div>
-              <div className="text-center">
-                <div className="text-xl font-bold text-green-600">{userData.totalOutfits}</div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">Outfits</div>
-              </div>
-              <div className="text-center">
-                <div className="text-xl font-bold text-purple-600">{userData.totalCategories}</div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">Categories</div>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Quick Actions */}
@@ -104,22 +97,7 @@ export default function ProfileMainView({
 
           {/* Content Area */}
           <div className="p-4">
-            <TabsContent value="clothes">
-              <ClothesTabContent
-                filteredClothes={filteredClothes}
-                selectedFilter={selectedFilter}
-                setSelectedFilter={setSelectedFilter}
-                showFilters={showFilters}
-                setShowFilters={setShowFilters}
-                categories={categories}
-              />
-            </TabsContent>
-            <TabsContent value="outfits">
-              <OutfitsTabContent outfits={outfits} />
-            </TabsContent>
-            <TabsContent value="activity">
-              <ActivityTabContent activity={activity} />
-            </TabsContent>
+            {children}
           </div>
         </Tabs>
       </div>

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Bell, ChevronRight, LogOut } from 'lucide-react';
 import ThemeToggle from '../ThemeToggle';
 import Button from '../common/Button';
 import Select from '../common/Select';
 import Input from '../common/Input';
+import { NotificationService, InitializationService } from '../../services/data';
 
 const SettingsMenuItem = ({ title, subtitle, onClick, danger = false }) => (
     <Button onClick={onClick} variant={danger ? 'danger' : 'ghost'} size="sm" className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
@@ -20,7 +21,58 @@ const SettingsMenuItem = ({ title, subtitle, onClick, danger = false }) => (
 );
 
 export default function SettingsView({ onBack }) {
-    const [notifications, setNotifications] = useState(true);
+    const [settings, setSettings] = useState(NotificationService.getSettings());
+
+    const handleSettingsChange = (key, value) => {
+        const newSettings = { ...settings, [key]: value };
+        setSettings(newSettings);
+        NotificationService.updateSettings(newSettings);
+    };
+
+    const handleExport = () => {
+        const data = InitializationService.exportData();
+        const json = JSON.stringify(data, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cloth-care-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const handleImport = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        InitializationService.importData(data);
+                        alert('Data imported successfully!');
+                        // Optionally, refresh the app or navigate away
+                        window.location.reload();
+                    } catch (error) {
+                        alert('Failed to import data.');
+                    }
+                };
+                reader.readAsText(file);
+            }
+        };
+        input.click();
+    };
+
+    const handleReset = () => {
+        if (confirm('Are you sure you want to reset all app data? This cannot be undone.')) {
+            InitializationService.resetApp();
+            alert('App data has been reset.');
+            window.location.reload();
+        }
+    };
 
     return (
         <div className="max-w-4xl mx-auto p-4 pb-24">
@@ -64,30 +116,30 @@ export default function SettingsView({ onBack }) {
                                 </div>
                             </div>
                             <button
-                                onClick={() => setNotifications(!notifications)}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${notifications ? 'bg-blue-600' : 'bg-gray-300'}`}
+                                onClick={() => handleSettingsChange('enabled', !settings.enabled)}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${settings.enabled ? 'bg-blue-600' : 'bg-gray-300'}`}
                             >
                                 <span
-                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notifications ? 'translate-x-6' : 'translate-x-1'}`}
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.enabled ? 'translate-x-6' : 'translate-x-1'}`}
                                 />
                             </button>
                         </div>
 
-                        {notifications && (
+                        {settings.enabled && (
                             <div className="ml-6 space-y-3">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             Notification Day
                                         </label>
-                                        <Select>
-                                            <option value="sunday">Sunday</option>
-                                            <option value="monday">Monday</option>
-                                            <option value="tuesday">Tuesday</option>
-                                            <option value="wednesday">Wednesday</option>
-                                            <option value="thursday">Thursday</option>
-                                            <option value="friday">Friday</option>
-                                            <option value="saturday">Saturday</option>
+                                        <Select value={settings.dayOfWeek} onChange={(e) => handleSettingsChange('dayOfWeek', parseInt(e.target.value))}>
+                                            <option value={0}>Sunday</option>
+                                            <option value={1}>Monday</option>
+                                            <option value={2}>Tuesday</option>
+                                            <option value={3}>Wednesday</option>
+                                            <option value={4}>Thursday</option>
+                                            <option value={5}>Friday</option>
+                                            <option value={6}>Saturday</option>
                                         </Select>
                                     </div>
 
@@ -95,7 +147,7 @@ export default function SettingsView({ onBack }) {
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                             Notification Time
                                         </label>
-                                        <Input type="time" defaultValue="10:00" />
+                                        <Input type="time" value={settings.timeOfDay} onChange={(e) => handleSettingsChange('timeOfDay', e.target.value)} />
                                     </div>
                                 </div>
                             </div>
@@ -107,9 +159,9 @@ export default function SettingsView({ onBack }) {
                         <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             Data & Privacy
                         </h3>
-                        <SettingsMenuItem title="Export Data" subtitle="Download your wardrobe data" onClick={() => console.log('Export data')} />
-                        <SettingsMenuItem title="Import Data" subtitle="Restore from backup" onClick={() => console.log('Import data')} />
-                        {/* <SettingsMenuItem title="Reset App Data" subtitle="Clear all data (cannot be undone)" onClick={() => console.log('Reset data')} danger /> */}
+                        <SettingsMenuItem title="Export Data" subtitle="Download your wardrobe data" onClick={handleExport} />
+                        <SettingsMenuItem title="Import Data" subtitle="Restore from backup" onClick={handleImport} />
+                        <SettingsMenuItem title="Reset App Data" subtitle="Clear all data (cannot be undone)" onClick={handleReset} danger />
                     </div>
 
                     {/* Account */}
@@ -117,9 +169,9 @@ export default function SettingsView({ onBack }) {
                         <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             Account
                         </h3>
-                        <SettingsMenuItem title="About ClothCare" subtitle="App version & info" onClick={() => console.log('About')} />
-                        <SettingsMenuItem title="Privacy Policy" subtitle="How we protect your data" onClick={() => console.log('Privacy Policy')} />
-                        <SettingsMenuItem title="Terms of Service" subtitle="App usage terms" onClick={() => console.log('Terms')} />
+                        <SettingsMenuItem title="About ClothCare" subtitle="App version & info" onClick={() => alert('ClothCare v1.0.0')} />
+                        <SettingsMenuItem title="Privacy Policy" subtitle="How we protect your data" onClick={() => alert('Privacy Policy')} />
+                        <SettingsMenuItem title="Terms of Service" subtitle="App usage terms" onClick={() => alert('Terms of Service')} />
                     </div>
 
                     {/* Logout */}

@@ -1,15 +1,41 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Filter, X, Shirt } from 'lucide-react';
 import Button from '../common/Button';
+import { ClothService, CategoryService, FilterService } from '../../services/data';
 
-export default function ClothesTabContent({
-  filteredClothes,
-  selectedFilter,
-  setSelectedFilter,
-  showFilters,
-  setShowFilters,
-  categories,
-}) {
+export default function ClothesTabContent() {
+  const [clothes, setClothes] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [filters, setFilters] = useState({
+    status: [],
+    categoryIds: [],
+    searchTerm: ''
+  });
+  const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    setCategories(CategoryService.getAll());
+    applyFilters();
+  }, []);
+
+  const applyFilters = () => {
+    const filteredClothes = FilterService.filterClothes(filters);
+    setClothes(filteredClothes);
+  };
+
+  useEffect(() => {
+    applyFilters();
+  }, [filters]);
+
+  const handleCategoryFilter = (categoryId) => {
+    setFilters(prev => ({ ...prev, categoryIds: [categoryId] }));
+    setShowFilters(false);
+  };
+
+  const clearCategoryFilter = () => {
+    setFilters(prev => ({ ...prev, categoryIds: [] }));
+  };
+
   return (
     <div className="space-y-4">
       {/* Filter Bar */}
@@ -23,14 +49,14 @@ export default function ClothesTabContent({
           <Filter size={16} />
           <span className="text-sm">Filter</span>
         </Button>
-        {selectedFilter !== 'all' && (
+        {filters.categoryIds.length > 0 && (
           <Button
-            onClick={() => setSelectedFilter('all')}
+            onClick={clearCategoryFilter}
             variant="secondary"
             size="sm"
             className="gap-1 bg-blue-100/50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100/70"
           >
-            {selectedFilter}
+            {CategoryService.getById(filters.categoryIds[0])?.name}
             <X size={14} />
           </Button>
         )}
@@ -40,26 +66,20 @@ export default function ClothesTabContent({
       {showFilters && (
         <div className="flex flex-wrap gap-2 p-3 bg-gray-50/50 dark:bg-gray-700/50 rounded-lg">
           <Button
-            onClick={() => {
-              setSelectedFilter('all');
-              setShowFilters(false);
-            }}
+            onClick={clearCategoryFilter}
             size="sm"
-            variant={selectedFilter === 'all' ? 'primary' : 'secondary'}
-            className={selectedFilter === 'all' ? '' : 'bg-white/50 dark:bg-gray-600/50'}
+            variant={filters.categoryIds.length === 0 ? 'primary' : 'secondary'}
+            className={filters.categoryIds.length === 0 ? '' : 'bg-white/50 dark:bg-gray-600/50'}
           >
             All
           </Button>
           {categories.map((category) => (
             <Button
               key={category.id}
-              onClick={() => {
-                setSelectedFilter(category.name);
-                setShowFilters(false);
-              }}
+              onClick={() => handleCategoryFilter(category.id)}
               size="sm"
-              variant={selectedFilter === category.name ? 'primary' : 'secondary'}
-              className={selectedFilter === category.name ? '' : 'bg-white/50 dark:bg-gray-600/50'}
+              variant={filters.categoryIds.includes(category.id) ? 'primary' : 'secondary'}
+              className={filters.categoryIds.includes(category.id) ? '' : 'bg-white/50 dark:bg-gray-600/50'}
             >
               {category.name}
             </Button>
@@ -69,7 +89,7 @@ export default function ClothesTabContent({
 
       {/* Clothes Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        {filteredClothes.map((cloth) => (
+        {clothes.map((cloth) => (
           <div
             key={cloth.id}
             className="bg-gray-50/50 dark:bg-gray-700/50 rounded-lg p-3 hover:bg-gray-100/50 dark:hover:bg-gray-600/50 transition-colors cursor-pointer"
@@ -83,7 +103,7 @@ export default function ClothesTabContent({
             </div>
             <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{cloth.name}</div>
             <div className="flex items-center justify-between mt-1">
-              <span className="text-xs text-gray-600 dark:text-gray-400">{cloth.category}</span>
+              <span className="text-xs text-gray-600 dark:text-gray-400">{CategoryService.getById(cloth.categoryId)?.name}</span>
               <span
                 className={`text-xs px-2 py-1 rounded-full ${
                   cloth.status === 'clean'
@@ -99,6 +119,11 @@ export default function ClothesTabContent({
           </div>
         ))}
       </div>
+      {clothes.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-500 dark:text-gray-400">No clothes found.</p>
+        </div>
+      )}
     </div>
   );
 }

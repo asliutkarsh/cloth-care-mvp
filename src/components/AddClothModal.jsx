@@ -4,6 +4,7 @@ import { Camera, Upload, X, ChevronDown, CheckCircle, AlertCircle, Loader2, Chev
 import Button from './common/Button';
 import Input from './common/Input';
 import Select from './common/Select';
+import { CategoryService } from '../services/data';
 
 const FormField = ({ label, id, required, children, className, error }) => (
     <div className={className}>
@@ -18,7 +19,7 @@ const FormField = ({ label, id, required, children, className, error }) => (
 export default function AddClothModal({ open, onClose, onAdd }) {
     const [formData, setFormData] = useState({
         name: '', description: '', color: '', customColor: '', image: null,
-        category: '', subcategory: '', brand: '', material: '', season: '',
+        categoryId: '', brand: '', material: '', season: '',
         cost: '', purchaseDate: '', requiresPressing: false
     });
     const [errors, setErrors] = useState({});
@@ -27,15 +28,22 @@ export default function AddClothModal({ open, onClose, onAdd }) {
     const [message, setMessage] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const [categories, setCategories] = useState([]);
     const fileInputRef = useRef(null);
     const cameraInputRef = useRef(null);
+
+    useEffect(() => {
+        if (open) {
+            setCategories(CategoryService.getAll());
+        }
+    }, [open]);
 
     // Reset form when opening/closing
     useEffect(() => {
         if (!open) return;
         setFormData({
             name: '', description: '', color: '', customColor: '', image: null,
-            category: '', subcategory: '', brand: '', material: '', season: '',
+            categoryId: '', brand: '', material: '', season: '',
             cost: '', purchaseDate: '', requiresPressing: false
         });
         setErrors({});
@@ -49,14 +57,6 @@ export default function AddClothModal({ open, onClose, onAdd }) {
     }, [open]);
 
     const predefinedColors = ['Black', 'White', 'Silver', 'Navy', 'Blue', 'SkyBlue', 'Red', 'Green', 'Olive', 'Brown', 'Tan', 'Beige', 'Pink', 'Purple', 'Yellow', 'Gold', 'Orange', 'Maroon'];
-    const mockCategories = [
-        { id: '1', name: 'Tops', subcategories: ['T-Shirts', 'Shirts', 'Blouses', 'Sweaters', 'Tank Tops'] },
-        { id: '2', name: 'Bottoms', subcategories: ['Jeans', 'Trousers', 'Shorts', 'Skirts', 'Leggings'] },
-        { id: '3', name: 'Outerwear', subcategories: ['Jackets', 'Coats', 'Hoodies', 'Blazers', 'Vests'] },
-        { id: '4', name: 'Dresses & Jumpsuits', subcategories: ['Casual Dress', 'Formal Dress', 'Jumpsuit', 'Romper'] },
-        { id: '5', name: 'Footwear', subcategories: ['Sneakers', 'Boots', 'Sandals', 'Heels', 'Flats'] },
-        { id: '6', name: 'Accessories', subcategories: ['Hats', 'Bags', 'Belts', 'Scarves', 'Jewelry'] },
-    ];
     const seasons = ['All Season', 'Spring', 'Summer', 'Fall', 'Winter'];
 
     const handleInputChange = (field, value) => {
@@ -67,9 +67,11 @@ export default function AddClothModal({ open, onClose, onAdd }) {
     const handleImageUpload = (event) => {
         const file = event.target.files[0];
         if (file) {
-            setFormData(prev => ({ ...prev, image: file }));
             const reader = new FileReader();
-            reader.onload = (e) => setImagePreview(e.target.result);
+            reader.onloadend = () => {
+                setImagePreview(reader.result);
+                setFormData(prev => ({ ...prev, image: reader.result }));
+            };
             reader.readAsDataURL(file);
         }
     };
@@ -84,7 +86,7 @@ export default function AddClothModal({ open, onClose, onAdd }) {
     const validateForm = () => {
         const newErrors = {};
         if (!formData.name.trim()) newErrors.name = 'Please enter a name for the item.';
-        if (!formData.category) newErrors.category = 'Please select a category.';
+        if (!formData.categoryId) newErrors.categoryId = 'Please select a category.';
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -97,8 +99,6 @@ export default function AddClothModal({ open, onClose, onAdd }) {
         const clothData = {
             ...formData,
             color: formData.color === 'custom' ? formData.customColor : formData.color,
-            id: Date.now().toString(),
-            createdAt: new Date().toISOString(),
         };
         setTimeout(() => {
             onAdd?.(clothData);
@@ -109,8 +109,6 @@ export default function AddClothModal({ open, onClose, onAdd }) {
             }, 600);
         }, 800);
     };
-
-    const selectedCategory = mockCategories.find(cat => cat.id === formData.category);
 
     return (
         <Modal open={open} onClose={onClose} title="Add New Item" size="xl">
@@ -132,9 +130,6 @@ export default function AddClothModal({ open, onClose, onAdd }) {
                         {imagePreview ? (
                             <div className="relative group transition-all duration-300 ease-in-out">
                                 <img src={imagePreview} alt="Preview" className="w-full h-64 object-cover rounded-lg shadow-inner" />
-                                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-2 rounded-b-lg truncate">
-                                    {formData.image?.name} - {formData.image ? (formData.image.size / 1024).toFixed(2) : 0} KB
-                                </div>
                                 <button type="button" onClick={removeImage} className="absolute top-3 right-3 p-1.5 bg-black/60 text-white rounded-full hover:bg-red-500">
                                     <X size={18} />
                                 </button>
@@ -160,20 +155,12 @@ export default function AddClothModal({ open, onClose, onAdd }) {
                     </FormField>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField label="Category" id="category" required error={errors.category}>
-                            <Select id="category" value={formData.category} onChange={(e) => { handleInputChange('category', e.target.value); handleInputChange('subcategory', ''); }} aria-invalid={!!errors.category} required>
+                        <FormField label="Category" id="category" required error={errors.categoryId}>
+                            <Select id="category" value={formData.categoryId} onChange={(e) => handleInputChange('categoryId', e.target.value)} aria-invalid={!!errors.categoryId} required>
                                 <option value="" disabled>Select Category</option>
-                                {mockCategories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                                {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                             </Select>
                         </FormField>
-                        {selectedCategory && (
-                            <FormField label="Subcategory" id="subcategory">
-                                <Select id="subcategory" value={formData.subcategory} onChange={(e) => handleInputChange('subcategory', e.target.value)}>
-                                    <option value="">Select Subcategory (Optional)</option>
-                                    {selectedCategory.subcategories.map(sub => <option key={sub} value={sub}>{sub}</option>)}
-                                </Select>
-                            </FormField>
-                        )}
                     </div>
 
                     <div className="flex items-center gap-4">
@@ -208,7 +195,7 @@ export default function AddClothModal({ open, onClose, onAdd }) {
                                     )}
                                 </FormField>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <FormField label="Brand" id="brand"><Input id="brand" value={formData.brand} onChange={(e) => handleInputChange('brand', e.target.value)} placeholder="Nike, Zara..." /></FormField>
+                                    <FormField label="Brand" id="brand"><Input id="brand" value={formData.brand} onChange={(e) => handleInputChange('brand', e.g.target.value)} placeholder="Nike, Zara..." /></FormField>
                                     <FormField label="Material" id="material"><Input id="material" value={formData.material} onChange={(e) => handleInputChange('material', e.target.value)} placeholder="Cotton, Silk..." /></FormField>
                                     <FormField label="Season" id="season">
                                         <Select id="season" value={formData.season} onChange={(e) => handleInputChange('season', e.target.value)}>

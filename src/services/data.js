@@ -7,7 +7,8 @@ class StorageService {
     CLOTHES: 'wardrobe_clothes',
     OUTFITS: 'wardrobe_outfits',
     ACTIVITY_LOGS: 'wardrobe_activity_logs',
-    NOTIFICATION_SETTINGS: 'wardrobe_notifications'
+    NOTIFICATION_SETTINGS: 'wardrobe_notifications',
+    AUDIT_LOGS: 'wardrobe_audit_logs'
   };
 
   static get(key) {
@@ -107,7 +108,9 @@ class CategoryService {
     const category = this.getById(categoryId);
     if (!category) return 2; // default
     
-    if (category.maxWearCount) return category.maxWearCount;
+    if (category.maxWearCount !== undefined && category.maxWearCount !== null) {
+      return category.maxWearCount;
+    }
     
     // Inherit from parent if not set
     if (category.parentId) {
@@ -176,6 +179,7 @@ class ClothService {
   static getCleanClothes() {
     return this.getByStatus(this.STATUSES.CLEAN);
   }
+  
 
   static create(clothData) {
     const clothes = this.getAll();
@@ -254,10 +258,11 @@ class ClothService {
           status: newStatus
         });
         
-        results.push(updatedCloth);
-        
-        if (cloth.requiresPressing) {
-          clothesNeedingPress.push(updatedCloth);
+        if (updatedCloth) {
+            results.push(updatedCloth);
+            if (updatedCloth.status === this.STATUSES.NEEDS_PRESSING) {
+                clothesNeedingPress.push(updatedCloth);
+            }
         }
       }
     });
@@ -277,7 +282,9 @@ class ClothService {
         const updatedCloth = this.update(clothId, {
           status: this.STATUSES.CLEAN
         });
-        results.push(updatedCloth);
+        if (updatedCloth) {
+            results.push(updatedCloth);
+        }
       }
     });
     
@@ -560,6 +567,7 @@ class LaundryService {
     return {
       totalWashed: result.washedClothes.length,
       needsPressing: result.needsPressing.length,
+      clothesWashed: result.washedClothes,
       clothesNeedingPress: result.needsPressing,
       message: this.createWashMessage(result)
     };
@@ -580,6 +588,7 @@ class LaundryService {
     
     return {
       totalPressed: pressedClothes.length,
+      pressedClothes: pressedClothes,
       message: `${pressedClothes.length} item${pressedClothes.length > 1 ? 's' : ''} pressed and ready to wear!`
     };
   }
@@ -626,7 +635,7 @@ class InitializationService {
     
     const outerwear = CategoryService.create({
       name: 'Outerwear',
-      maxWearCount: 3
+      maxWearCount: 5
     });
     
     // Create subcategories
@@ -667,6 +676,7 @@ class InitializationService {
       outfits: OutfitService.getAll(),
       activityLogs: ActivityLogService.getAll(),
       notificationSettings: NotificationService.getSettings(),
+      auditLogs: AuditLogService.getAll(),
       exportDate: new Date().toISOString()
     };
   }
@@ -678,6 +688,7 @@ class InitializationService {
       if (data.outfits) StorageService.set(StorageService.KEYS.OUTFITS, data.outfits);
       if (data.activityLogs) StorageService.set(StorageService.KEYS.ACTIVITY_LOGS, data.activityLogs);
       if (data.notificationSettings) StorageService.set(StorageService.KEYS.NOTIFICATION_SETTINGS, data.notificationSettings);
+      if (data.auditLogs) StorageService.set(StorageService.KEYS.AUDIT_LOGS, data.auditLogs);
       
       return { success: true, message: 'Data imported successfully!' };
     } catch (error) {
@@ -714,7 +725,7 @@ class AuditLogService {
   }
 
   static getAll() {
-    return StorageService.get('wardrobe_audit_logs') || [];
+    return StorageService.get(StorageService.KEYS.AUDIT_LOGS) || [];
   }
 
   static log(logData) {
@@ -740,7 +751,7 @@ class AuditLogService {
       logs.splice(0, logs.length - 1000);
     }
     
-    StorageService.set('wardrobe_audit_logs', logs);
+    StorageService.set(StorageService.KEYS.AUDIT_LOGS, logs);
     return newLog;
   }
 
@@ -788,7 +799,7 @@ class AuditLogService {
     const logs = this.getAll();
     const filteredLogs = logs.filter(log => new Date(log.timestamp) > cutoffDate);
     
-    StorageService.set('wardrobe_audit_logs', filteredLogs);
+    StorageService.set(StorageService.KEYS.AUDIT_LOGS, filteredLogs);
     return logs.length - filteredLogs.length; // Return number of deleted logs
   }
 }
@@ -808,14 +819,13 @@ class FilterService {
     // Filter by category
     if (filters.categoryIds && filters.categoryIds.length > 0) {
       clothes = clothes.filter(cloth => {
-        if (filters.categoryIds.includes(cloth.categoryId)) return true;
-        
-        // Check if any parent category matches (for subcategories)
-        const category = CategoryService.getById(cloth.categoryId);
-        if (category && category.parentId) {
-          return filters.categoryIds.includes(category.parentId);
+        let currentCategory = CategoryService.getById(cloth.categoryId);
+        while (currentCategory) {
+          if (filters.categoryIds.includes(currentCategory.id)) {
+            return true;
+          }
+          currentCategory = currentCategory.parentId ? CategoryService.getById(currentCategory.parentId) : null;
         }
-        
         return false;
       });
     }
@@ -859,12 +869,12 @@ class FilterService {
     // Filter by purchase date range
     if (filters.purchaseDateFrom) {
       clothes = clothes.filter(cloth => 
-        cloth.purchaseDate && cloth.purchaseDate >= filters.purchaseDateFrom
+        cloth.purchaseDate && new Date(cloth.purchaseDate) >= new Date(filters.purchaseDateFrom)
       );
     }
     if (filters.purchaseDateTo) {
       clothes = clothes.filter(cloth => 
-        cloth.purchaseDate && cloth.purchaseDate <= filters.purchaseDateTo
+        cloth.purchaseDate && new Date(cloth.purchaseDate) <= new Date(filters.purchaseDateTo)
       );
     }
     
@@ -893,7 +903,7 @@ class FilterService {
   static sortClothes(clothes, sortBy, sortOrder = 'asc') {
     const direction = sortOrder === 'desc' ? -1 : 1;
     
-    return clothes.sort((a, b) => {
+    return [...clothes].sort((a, b) => {
       let valueA, valueB;
       
       switch (sortBy) {
@@ -965,18 +975,18 @@ class FilterService {
     const clothes = ClothService.getAll();
     
     return {
-      colors: [...new Set(clothes.map(c => c.color).filter(Boolean))],
-      brands: [...new Set(clothes.map(c => c.brand).filter(Boolean))],
-      materials: [...new Set(clothes.map(c => c.material).filter(Boolean))],
-      seasons: [...new Set(clothes.map(c => c.season).filter(Boolean))],
+      colors: [...new Set(clothes.map(c => c.color).filter(Boolean))].sort(),
+      brands: [...new Set(clothes.map(c => c.brand).filter(Boolean))].sort(),
+      materials: [...new Set(clothes.map(c => c.material).filter(Boolean))].sort(),
+      seasons: [...new Set(clothes.map(c => c.season).filter(Boolean))].sort(),
       categories: CategoryService.getAll(),
       wearCountRange: {
-        min: Math.min(...clothes.map(c => c.currentWearCount)),
-        max: Math.max(...clothes.map(c => c.currentWearCount))
+        min: clothes.length > 0 ? Math.min(...clothes.map(c => c.currentWearCount)) : 0,
+        max: clothes.length > 0 ? Math.max(...clothes.map(c => c.currentWearCount)) : 0
       },
       costRange: {
-        min: Math.min(...clothes.map(c => c.cost || 0)),
-        max: Math.max(...clothes.map(c => c.cost || 0))
+        min: clothes.length > 0 ? Math.min(...clothes.map(c => c.cost || 0)) : 0,
+        max: clothes.length > 0 ? Math.max(...clothes.map(c => c.cost || 0)) : 0
       }
     };
   }
@@ -1023,283 +1033,6 @@ class SearchService {
 }
 
 // =======================
-// UPDATED SERVICES WITH LOGGING
-// =======================
-
-// Update CategoryService to include logging
-const OriginalCategoryService = { ...CategoryService };
-CategoryService.create = function(categoryData) {
-  const category = OriginalCategoryService.create.call(this, categoryData);
-  
-  AuditLogService.log({
-    type: AuditLogService.LOG_TYPES.CATEGORY,
-    action: AuditLogService.ACTIONS.CREATE,
-    entityId: category.id,
-    entityName: category.name,
-    newValue: category,
-    details: { categoryData }
-  });
-  
-  return category;
-};
-
-CategoryService.update = function(id, updateData) {
-  const oldCategory = this.getById(id);
-  const category = OriginalCategoryService.update.call(this, id, updateData);
-  
-  if (category) {
-    AuditLogService.log({
-      type: AuditLogService.LOG_TYPES.CATEGORY,
-      action: AuditLogService.ACTIONS.UPDATE,
-      entityId: category.id,
-      entityName: category.name,
-      oldValue: oldCategory,
-      newValue: category,
-      details: { updateData }
-    });
-  }
-  
-  return category;
-};
-
-CategoryService.delete = function(id) {
-  const category = this.getById(id);
-  const result = OriginalCategoryService.delete.call(this, id);
-  
-  if (result && category) {
-    AuditLogService.log({
-      type: AuditLogService.LOG_TYPES.CATEGORY,
-      action: AuditLogService.ACTIONS.DELETE,
-      entityId: category.id,
-      entityName: category.name,
-      oldValue: category
-    });
-  }
-  
-  return result;
-};
-
-// Update ClothService to include logging
-const OriginalClothService = { ...ClothService };
-ClothService.create = function(clothData) {
-  const cloth = OriginalClothService.create.call(this, clothData);
-  
-  AuditLogService.log({
-    type: AuditLogService.LOG_TYPES.CLOTH,
-    action: AuditLogService.ACTIONS.CREATE,
-    entityId: cloth.id,
-    entityName: cloth.name,
-    newValue: cloth,
-    details: { clothData }
-  });
-  
-  return cloth;
-};
-
-ClothService.update = function(id, updateData) {
-  const oldCloth = this.getById(id);
-  const cloth = OriginalClothService.update.call(this, id, updateData);
-  
-  if (cloth) {
-    AuditLogService.log({
-      type: AuditLogService.LOG_TYPES.CLOTH,
-      action: AuditLogService.ACTIONS.UPDATE,
-      entityId: cloth.id,
-      entityName: cloth.name,
-      oldValue: oldCloth,
-      newValue: cloth,
-      details: { updateData }
-    });
-  }
-  
-  return cloth;
-};
-
-ClothService.delete = function(id) {
-  const cloth = this.getById(id);
-  const result = OriginalClothService.delete.call(this, id);
-  
-  if (result && cloth) {
-    AuditLogService.log({
-      type: AuditLogService.LOG_TYPES.CLOTH,
-      action: AuditLogService.ACTIONS.DELETE,
-      entityId: cloth.id,
-      entityName: cloth.name,
-      oldValue: cloth
-    });
-  }
-  
-  return result;
-};
-
-ClothService.incrementWearCount = function(clothId) {
-  const oldCloth = this.getById(clothId);
-  const cloth = OriginalClothService.incrementWearCount.call(this, clothId);
-  
-  if (cloth) {
-    AuditLogService.log({
-      type: AuditLogService.LOG_TYPES.CLOTH,
-      action: AuditLogService.ACTIONS.WEAR,
-      entityId: cloth.id,
-      entityName: cloth.name,
-      oldValue: { wearCount: oldCloth.currentWearCount, status: oldCloth.status },
-      newValue: { wearCount: cloth.currentWearCount, status: cloth.status },
-      details: { 
-        wearCountIncrement: 1,
-        statusChanged: oldCloth.status !== cloth.status 
-      }
-    });
-    
-    // Log status change separately if it occurred
-    if (oldCloth.status !== cloth.status) {
-      AuditLogService.log({
-        type: AuditLogService.LOG_TYPES.CLOTH,
-        action: AuditLogService.ACTIONS.STATUS_CHANGE,
-        entityId: cloth.id,
-        entityName: cloth.name,
-        oldValue: oldCloth.status,
-        newValue: cloth.status,
-        details: { 
-          reason: 'wear_count_exceeded',
-          maxWearCount: CategoryService.getMaxWearCount(cloth.categoryId)
-        }
-      });
-    }
-  }
-  
-  return cloth;
-};
-
-// Update OutfitService to include logging
-const OriginalOutfitService = { ...OutfitService };
-OutfitService.create = function(outfitData) {
-  const outfit = OriginalOutfitService.create.call(this, outfitData);
-  
-  AuditLogService.log({
-    type: AuditLogService.LOG_TYPES.OUTFIT,
-    action: AuditLogService.ACTIONS.CREATE,
-    entityId: outfit.id,
-    entityName: outfit.name,
-    newValue: outfit,
-    details: { 
-      outfitData,
-      clothCount: outfit.clothIds.length 
-    }
-  });
-  
-  return outfit;
-};
-
-OutfitService.update = function(id, updateData) {
-  const oldOutfit = this.getById(id);
-  const outfit = OriginalOutfitService.update.call(this, id, updateData);
-  
-  if (outfit) {
-    AuditLogService.log({
-      type: AuditLogService.LOG_TYPES.OUTFIT,
-      action: AuditLogService.ACTIONS.UPDATE,
-      entityId: outfit.id,
-      entityName: outfit.name,
-      oldValue: oldOutfit,
-      newValue: outfit,
-      details: { updateData }
-    });
-  }
-  
-  return outfit;
-};
-
-OutfitService.delete = function(id) {
-  const outfit = this.getById(id);
-  const result = OriginalOutfitService.delete.call(this, id);
-  
-  if (result && outfit) {
-    AuditLogService.log({
-      type: AuditLogService.LOG_TYPES.OUTFIT,
-      action: AuditLogService.ACTIONS.DELETE,
-      entityId: outfit.id,
-      entityName: outfit.name,
-      oldValue: outfit
-    });
-  }
-  
-  return result;
-};
-
-// Update LaundryService to include logging
-const OriginalLaundryService = { ...LaundryService };
-LaundryService.washSelectedClothes = function(clothIds) {
-  const result = OriginalLaundryService.washSelectedClothes.call(this, clothIds);
-  
-  // Log washing activity
-  AuditLogService.log({
-    type: AuditLogService.LOG_TYPES.LAUNDRY,
-    action: AuditLogService.ACTIONS.WASH,
-    entityId: 'batch_' + Date.now(),
-    entityName: `Batch wash (${result.totalWashed} items)`,
-    details: {
-      clothIds,
-      totalWashed: result.totalWashed,
-      needsPressing: result.needsPressing,
-      clothesWashed: result.washedClothes.map(c => ({ id: c.id, name: c.name }))
-    }
-  });
-  
-  // Log individual cloth status changes
-  result.washedClothes.forEach(cloth => {
-    AuditLogService.log({
-      type: AuditLogService.LOG_TYPES.CLOTH,
-      action: AuditLogService.ACTIONS.STATUS_CHANGE,
-      entityId: cloth.id,
-      entityName: cloth.name,
-      oldValue: ClothService.STATUSES.DIRTY,
-      newValue: cloth.status,
-      details: { 
-        reason: 'washed',
-        wearCountReset: true,
-        requiresPressing: cloth.requiresPressing
-      }
-    });
-  });
-  
-  return result;
-};
-
-LaundryService.pressSelectedClothes = function(clothIds) {
-  const result = OriginalLaundryService.pressSelectedClothes.call(this, clothIds);
-  
-  // Log pressing activity
-  AuditLogService.log({
-    type: AuditLogService.LOG_TYPES.LAUNDRY,
-    action: AuditLogService.ACTIONS.PRESS,
-    entityId: 'press_batch_' + Date.now(),
-    entityName: `Batch press (${result.totalPressed} items)`,
-    details: {
-      clothIds,
-      totalPressed: result.totalPressed
-    }
-  });
-  
-  // Log individual cloth status changes
-  clothIds.forEach(clothId => {
-    const cloth = ClothService.getById(clothId);
-    if (cloth) {
-      AuditLogService.log({
-        type: AuditLogService.LOG_TYPES.CLOTH,
-        action: AuditLogService.ACTIONS.STATUS_CHANGE,
-        entityId: cloth.id,
-        entityName: cloth.name,
-        oldValue: ClothService.STATUSES.NEEDS_PRESSING,
-        newValue: ClothService.STATUSES.CLEAN,
-        details: { reason: 'pressed' }
-      });
-    }
-  });
-  
-  return result;
-};
-
-// =======================
 // 13. WARDROBE QUERY SERVICE
 // =======================
 class WardrobeQueryService {
@@ -1326,8 +1059,24 @@ class WardrobeQueryService {
   }
 
   // Get clothes by category with status filtering
-  static getClothesByCategory(categoryId, statusFilter = null) {
-    const filters = { categoryIds: [categoryId] };
+  static getClothesByCategory(categoryId, statusFilter = null, includeSubcategories = true) {
+    const filters = { };
+    if (includeSubcategories) {
+        const allCategories = CategoryService.getAll();
+        const categoryIds = [categoryId];
+        function addSubcategories(parentId) {
+            const subcategories = allCategories.filter(cat => cat.parentId === parentId);
+            subcategories.forEach(subcat => {
+                categoryIds.push(subcat.id);
+                addSubcategories(subcat.id);
+            });
+        }
+        addSubcategories(categoryId);
+        filters.categoryIds = categoryIds;
+    } else {
+        filters.categoryIds = [categoryId];
+    }
+    
     if (statusFilter) {
       filters.status = Array.isArray(statusFilter) ? statusFilter : [statusFilter];
     }
@@ -1336,7 +1085,7 @@ class WardrobeQueryService {
 
   // Get clean clothes by category (ready to wear)
   static getAvailableClothesInCategory(categoryId) {
-    return this.getClothesByCategory(categoryId, ClothService.STATUSES.CLEAN);
+    return this.getClothesByCategory(categoryId, ClothService.STATUSES.CLEAN, true);
   }
 
   // Get clothes nearing dirty status
@@ -1346,6 +1095,7 @@ class WardrobeQueryService {
       if (cloth.status !== ClothService.STATUSES.CLEAN) return false;
       
       const maxWearCount = CategoryService.getMaxWearCount(cloth.categoryId);
+      if (maxWearCount <= 0) return false;
       const wearPercentage = cloth.currentWearCount / maxWearCount;
       return wearPercentage >= threshold;
     });
@@ -1367,19 +1117,16 @@ class WardrobeQueryService {
 
   // Get clothes by wear frequency
   static getFrequentlyWornClothes(minWearCount = 5) {
-    const clothes = ClothService.getAll();
-    return clothes.filter(cloth => cloth.currentWearCount >= minWearCount);
+    return FilterService.filterClothes({ wearCountMin: minWearCount });
   }
 
   static getRarelyWornClothes(maxWearCount = 1) {
-    const clothes = ClothService.getAll();
-    return clothes.filter(cloth => cloth.currentWearCount <= maxWearCount);
+    return FilterService.filterClothes({ wearCountMax: maxWearCount });
   }
 
   // Get expensive clothes
-  static getExpensiveClothes(minCost = 1000) {
-    const clothes = ClothService.getAll();
-    return clothes.filter(cloth => cloth.cost && cloth.cost >= minCost);
+  static getExpensiveClothes(minCost = 100) {
+    return FilterService.filterClothes({ costMin: minCost });
   }
 
   // Get clothes by season
@@ -1395,9 +1142,9 @@ class WardrobeQueryService {
     const overview = {
       totalItems: clothes.length,
       byStatus: {
-        clean: clothes.filter(c => c.status === ClothService.STATUSES.CLEAN).length,
-        dirty: clothes.filter(c => c.status === ClothService.STATUSES.DIRTY).length,
-        needsPressing: clothes.filter(c => c.status === ClothService.STATUSES.NEEDS_PRESSING).length
+        clean: this.getCleanClothes().length,
+        dirty: this.getDirtyClothes().length,
+        needsPressing: this.getNeedsPressing().length
       },
       byCategory: {},
       totalValue: clothes.reduce((sum, cloth) => sum + (cloth.cost || 0), 0),
@@ -1406,15 +1153,29 @@ class WardrobeQueryService {
         : 0
     };
     
-    // Calculate category breakdown
-    categories.forEach(category => {
-      const categoryClothes = FilterService.getClothesByCategory(category.id);
-      overview.byCategory[category.name] = {
-        total: categoryClothes.length,
-        clean: categoryClothes.filter(c => c.status === ClothService.STATUSES.CLEAN).length,
-        dirty: categoryClothes.filter(c => c.status === ClothService.STATUSES.DIRTY).length,
-        needsPressing: categoryClothes.filter(c => c.status === ClothService.STATUSES.NEEDS_PRESSING).length
-      };
+    // Calculate category breakdown using the hierarchy
+    const categoryTree = CategoryService.getHierarchy();
+    
+    const processCategory = (category) => {
+        const clothesInCategory = this.getClothesByCategory(category.id, null, true);
+        overview.byCategory[category.name] = {
+            id: category.id,
+            total: clothesInCategory.length,
+            clean: clothesInCategory.filter(c => c.status === ClothService.STATUSES.CLEAN).length,
+            dirty: clothesInCategory.filter(c => c.status === ClothService.STATUSES.DIRTY).length,
+            needsPressing: clothesInCategory.filter(c => c.status === ClothService.STATUSES.NEEDS_PRESSING).length,
+            children: {}
+        };
+        if(category.children && category.children.length > 0) {
+            category.children.forEach(child => {
+                overview.byCategory[category.name].children[child.name] = processCategory(child)
+            })
+        }
+        return overview.byCategory[category.name]
+    }
+    
+    categoryTree.forEach(rootCategory => {
+        processCategory(rootCategory);
     });
     
     return overview;
@@ -1437,34 +1198,38 @@ class AdvancedAnalyticsService {
     // Analyze daily wear patterns
     const dailyWears = {};
     recentActivities.forEach(activity => {
-      if (!dailyWears[activity.date]) {
-        dailyWears[activity.date] = 0;
+      const dateKey = activity.date;
+      if (!dailyWears[dateKey]) {
+        dailyWears[dateKey] = 0;
       }
       
       const clothCount = activity.type === 'outfit'
         ? OutfitService.getClothesInOutfit(activity.outfitId).length
         : activity.clothIds.length;
       
-      dailyWears[activity.date] += clothCount;
+      dailyWears[dateKey] += clothCount;
     });
     
+    const totalWears = Object.values(dailyWears).reduce((a, b) => a + b, 0);
+    const activeDays = Object.keys(dailyWears).length;
+
     return {
       dailyWears,
-      averageItemsPerDay: Object.values(dailyWears).reduce((a, b) => a + b, 0) / Object.keys(dailyWears).length,
+      averageItemsPerDay: activeDays > 0 ? totalWears / activeDays : 0,
       totalActivities: recentActivities.length,
-      activeDays: Object.keys(dailyWears).length
+      activeDays: activeDays
     };
   }
 
-  static getClothUtilization() {
+  static getCostPerWear() {
     const clothes = ClothService.getAll();
-    const totalWears = clothes.reduce((sum, cloth) => sum + cloth.currentWearCount, 0);
-    
-    return clothes.map(cloth => ({
-      ...cloth,
-      utilizationPercentage: totalWears > 0 ? (cloth.currentWearCount / totalWears) * 100 : 0,
-      wearRatio: cloth.currentWearCount / CategoryService.getMaxWearCount(cloth.categoryId)
-    }));
+    return clothes
+        .filter(cloth => cloth.cost > 0)
+        .map(cloth => ({
+            ...cloth,
+            costPerWear: cloth.currentWearCount > 0 ? cloth.cost / cloth.currentWearCount : cloth.cost
+        }))
+        .sort((a,b) => a.costPerWear - b.costPerWear);
   }
 
   static getLaundryFrequency(days = 90) {
@@ -1482,8 +1247,8 @@ class AdvancedAnalyticsService {
     const weeklyWashes = {};
     washLogs.forEach(log => {
       const date = new Date(log.timestamp);
-      const weekStart = new Date(date.setDate(date.getDate() - date.getDay()));
-      const weekKey = weekStart.toISOString().split('T')[0];
+      const firstDay = new Date(date.setDate(date.getDate() - date.getDay()));
+      const weekKey = firstDay.toISOString().split('T')[0];
       
       if (!weeklyWashes[weekKey]) {
         weeklyWashes[weekKey] = 0;
@@ -1491,12 +1256,39 @@ class AdvancedAnalyticsService {
       weeklyWashes[weekKey] += log.details.totalWashed || 0;
     });
     
+    const totalWeeks = Object.keys(weeklyWashes).length;
+
     return {
       weeklyWashes,
-      averagePerWeek: Object.values(weeklyWashes).reduce((a, b) => a + b, 0) / Object.keys(weeklyWashes).length,
+      averagePerWeek: totalWeeks > 0 ? Object.values(weeklyWashes).reduce((a, b) => a + b, 0) / totalWeeks : 0,
       totalWashSessions: washLogs.length
     };
   }
+
+  static getNumberOfClothesByCategory(categoryId, subcategories) {
+    const allClothes = ClothService.getAll();
+    const categoryIds = [categoryId, ...subcategories.map(sub => sub.id)];
+  
+    return allClothes.filter(cloth => categoryIds.includes(cloth.categoryId)).length;
+  }  
+
+  static moveClothesToCategory(categoryIds, newCategoryId) {
+    if (categoryIds.includes(newCategoryId)) {
+      throw new Error("Cannot reassign clothes to the same category being deleted.");
+    }
+  
+    const clothes = ClothService.getAll();
+    const clothesToMove = clothes.filter(cloth => categoryIds.includes(cloth.categoryId));
+  
+    clothesToMove.forEach(cloth => {
+      cloth.categoryId = newCategoryId;
+      console.log("Cloth updated:", cloth);
+      ClothService.update(cloth.id, cloth);
+    });
+  
+    return true;
+  }
+  
 }
 
 // =======================

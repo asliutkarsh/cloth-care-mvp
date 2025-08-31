@@ -13,44 +13,37 @@ import CalendarHeader from '../components/calendar/CalendarHeader';
 import WeekdayHeader from '../components/calendar/WeekdayHeader';
 import CalendarGrid from '../components/calendar/CalendarGrid';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { ActivityLogService, OutfitService, ClothService } from '../services/data';
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showAddModal, setShowAddModal] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState(null);
+  const [activities, setActivities] = useState({});
+  const [outfits, setOutfits] = useState([]);
+  const [clothes, setClothes] = useState([]);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Mock data
-  const [activities, setActivities] = useState({
-    '2025-08-31': [
-      { id: '1', type: 'outfit', name: 'Casual Friday', time: '09:00', items: ['Blue Shirt', 'Black Jeans'] },
-      { id: '2', type: 'cloth', name: 'White T-Shirt', time: '14:30', items: ['White T-Shirt'] }
-    ],
-    '2025-08-30': [
-      { id: '3', type: 'outfit', name: 'Weekend Comfort', time: '10:15', items: ['Gray Hoodie', 'Sweatpants'] }
-    ],
-    '2025-08-29': [
-      { id: '4', type: 'cloth', name: 'Navy Blazer', time: '08:45', items: ['Navy Blazer'] }
-    ]
-  });
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const mockOutfits = [
-    { id: '1', name: 'Casual Friday', items: ['Blue Denim Shirt', 'Black Jeans'] },
-    { id: '2', name: 'Weekend Comfort', items: ['Gray Hoodie', 'Sweatpants'] },
-    { id: '3', name: 'Office Look', items: ['Navy Blazer', 'White Shirt'] },
-    { id: '4', name: 'Summer Vibes', items: ['Floral Dress', 'Sandals'] }
-  ];
-
-  const mockClothes = [
-    { id: '1', name: 'Blue Denim Shirt', category: 'Tops', status: 'clean' },
-    { id: '2', name: 'Black Jeans', category: 'Bottoms', status: 'clean' },
-    { id: '3', name: 'White T-Shirt', category: 'Tops', status: 'dirty' },
-    { id: '4', name: 'Gray Hoodie', category: 'Outerwear', status: 'clean' },
-    { id: '5', name: 'Navy Blazer', category: 'Outerwear', status: 'needs_pressing' },
-    { id: '6', name: 'Red Dress', category: 'Dresses', status: 'clean' }
-  ];
+  const loadData = () => {
+    const allActivities = ActivityLogService.getAll();
+    const groupedActivities = allActivities.reduce((acc, activity) => {
+      const date = activity.date;
+      if (!acc[date]) {
+        acc[date] = [];
+      }
+      acc[date].push(activity);
+      return acc;
+    }, {});
+    setActivities(groupedActivities);
+    setOutfits(OutfitService.getAll());
+    setClothes(ClothService.getCleanClothes()); // Only show clean clothes
+  };
 
   // Calendar helpers
   const monthNames = [
@@ -115,21 +108,32 @@ export default function Calendar() {
 
   const addActivity = (activityData) => {
     const effectiveDate = activityData?.date instanceof Date && !isNaN(activityData.date) ? activityData.date : selectedDate;
-    // Ensure UI reflects the date used
-    setSelectedDate(effectiveDate);
-    const dateStr = formatDate(effectiveDate);
-    const newActivity = {
-      id: Date.now().toString(),
+    ActivityLogService.logActivity({
       ...activityData,
-      time: new Date().toTimeString().slice(0, 5)
-    };
-    setActivities((prev) => ({ ...prev, [dateStr]: [...(prev[dateStr] || []), newActivity] }));
+      date: formatDate(effectiveDate),
+    });
+    loadData(); // Refresh data
     setShowAddModal(false);
   };
 
-  // Render calendar days (moved into dedicated component props)
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDay = getFirstDayOfMonth(currentDate);
+
+  const getActivityDetails = (activity) => {
+    if (activity.type === 'outfit') {
+      const outfit = OutfitService.getById(activity.outfitId);
+      return {
+        name: outfit?.name || 'Outfit',
+        items: OutfitService.getClothesInOutfit(activity.outfitId).map(c => c.name)
+      };
+    } else {
+      const cloth = ClothService.getById(activity.clothIds[0]);
+      return {
+        name: cloth?.name || 'Item',
+        items: activity.clothIds.map(id => ClothService.getById(id)?.name).filter(Boolean)
+      };
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto p-4 pb-24">
@@ -137,14 +141,11 @@ export default function Calendar() {
         {/* Calendar Section */}
         <div className="lg:col-span-2">
           <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur rounded-xl shadow-sm border border-white/20 dark:border-gray-700">
-            {/* Calendar Header */}
             <CalendarHeader
               monthLabel={`${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
               onPrev={() => navigateMonth(-1)}
               onNext={() => navigateMonth(1)}
             />
-
-            {/* Calendar Grid */}
             <div className="p-4">
               <WeekdayHeader />
               <CalendarGrid
@@ -159,15 +160,6 @@ export default function Calendar() {
                 isSameDay={isSameDay}
                 hasActivity={hasActivity}
               />
-
-              {/* Quick Add Button */}
-              {/* <button
-                onClick={() => setShowAddModal(true)}
-                className="w-full mt-4 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Plus size={20} />
-                <span>Add Activity for {selectedDate.toLocaleDateString()}</span>
-              </button> */}
             </div>
           </div>
         </div>
@@ -175,7 +167,6 @@ export default function Calendar() {
         {/* Activity Log Section */}
         <div className="lg:col-span-1">
           <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur rounded-xl shadow-sm border border-white/20 dark:border-gray-700">
-            {/* Log Header */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2 mb-2">
                 <CalendarDays size={20} className="text-blue-600 dark:text-blue-400" />
@@ -190,37 +181,38 @@ export default function Calendar() {
               )}
             </div>
 
-            {/* Activity List */}
             <div className="p-4">
               {activities[formatDate(selectedDate)]?.length > 0 ? (
                 <div className="space-y-3">
-                  {activities[formatDate(selectedDate)].map((activity) => (
-                    <div key={activity.id} className="flex items-start gap-3 p-3 bg-gray-50/50 dark:bg-gray-700/50 rounded-lg">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center mt-1 ${activity.type === 'outfit'
-                        ? 'bg-blue-200 dark:bg-blue-800'
-                        : 'bg-green-200 dark:bg-green-800'
-                        }`}>
-                        {activity.type === 'outfit' ? (
-                          <Layers size={16} className="text-blue-600 dark:text-blue-400" />
-                        ) : (
-                          <Shirt size={16} className="text-green-600 dark:text-green-400" />
-                        )}
+                  {activities[formatDate(selectedDate)].map((activity) => {
+                    const details = getActivityDetails(activity);
+                    return (
+                      <div key={activity.id} className="flex items-start gap-3 p-3 bg-gray-50/50 dark:bg-gray-700/50 rounded-lg">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center mt-1 ${activity.type === 'outfit'
+                          ? 'bg-blue-200 dark:bg-blue-800'
+                          : 'bg-green-200 dark:bg-green-800'
+                          }`}>
+                          {activity.type === 'outfit' ? (
+                            <Layers size={16} className="text-blue-600 dark:text-blue-400" />
+                          ) : (
+                            <Shirt size={16} className="text-green-600 dark:text-green-400" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900 dark:text-white mb-1">
+                            {details.name}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                            <Clock size={12} className="inline mr-1" />
+                            {new Date(activity.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            {details.items.join(', ')}
+                          </div>
+                        </div>
                       </div>
-
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 dark:text-white mb-1">
-                          {activity.name}
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                          <Clock size={12} className="inline mr-1" />
-                          {activity.time}
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">
-                          {activity.items.join(', ')}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -233,41 +225,15 @@ export default function Calendar() {
               )}
             </div>
           </div>
-
-          {/* Quick Stats */}
-          <div className="mt-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur rounded-xl shadow-sm border border-white/20 dark:border-gray-700 p-4">
-            <h4 className="font-semibold text-gray-900 dark:text-white mb-3">This Month</h4>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Activities Logged</span>
-                <span className="font-medium text-gray-900 dark:text-white">
-                  {Object.values(activities).flat().length}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Outfits Worn</span>
-                <span className="font-medium text-gray-900 dark:text-white">
-                  {Object.values(activities).flat().filter(a => a.type === 'outfit').length}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Items Worn</span>
-                <span className="font-medium text-gray-900 dark:text-white">
-                  {Object.values(activities).flat().filter(a => a.type === 'cloth').length}
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Add Activity Modal (common) */}
       <AddActivityModal
         open={showAddModal}
         onClose={() => setShowAddModal(false)}
         date={selectedDate}
-        outfits={mockOutfits}
-        clothes={mockClothes}
+        outfits={outfits}
+        clothes={clothes}
         onSubmit={(payload) => addActivity(payload)}
       />
     </div>

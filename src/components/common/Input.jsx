@@ -16,6 +16,7 @@ export default function Input({
     right,
     size = 'md',
     className,
+    disabled = false,
     inputClassName,
     fullWidth = true,
     ...props
@@ -44,6 +45,7 @@ export default function Input({
                 )}
                 <input
                     id={inputId}
+                    disabled={disabled}
                     className={clsx(
                         'bg-transparent outline-none w-full placeholder:text-gray-400 dark:placeholder:text-gray-500',
                         sizes[size],

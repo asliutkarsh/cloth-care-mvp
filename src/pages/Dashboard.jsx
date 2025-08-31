@@ -10,7 +10,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Initialize the app which creates default categories if none exist
-    InitializationService.initializeApp();
+    // InitializationService.initializeApp();
     
     // Fetch wardrobe stats
     const wardrobeStats = AnalyticsService.getWardrobeStats();
@@ -31,8 +31,7 @@ export default function Dashboard() {
           <StatCard title="Total Clothes" value={stats.totalClothes} />
           <StatCard title="Total Outfits" value={stats.totalOutfits} />
           <StatCard title="Clean" value={stats.cleanClothes} color="text-green-500" />
-          <StatCard title="Dirty" value={s
-tats.dirtyClothes} color="text-red-500" />
+          <StatCard title="Dirty" value={stats.dirtyClothes} color="text-red-500" />
         </div>
 
         {/* Quick Actions */}
