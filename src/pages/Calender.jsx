@@ -13,7 +13,10 @@ import CalendarHeader from '../components/calendar/CalendarHeader';
 import WeekdayHeader from '../components/calendar/WeekdayHeader';
 import CalendarGrid from '../components/calendar/CalendarGrid';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ActivityLogService, OutfitService, ClothService } from '../services/data';
+import * as ActivityLogService from '../services/activityLogService';
+import * as OutfitService from '../services/outfitService';
+import * as ClothService from '../services/clothService';
+
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());

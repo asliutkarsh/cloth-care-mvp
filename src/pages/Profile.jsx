@@ -15,13 +15,11 @@ import OutfitsTabContent from '../components/Profile/OutfitsTabContent';
 import ActivityTabContent from '../components/Profile/ActivityTabContent';
 import ProfileMainView from '../components/Profile/ProfileMainView';
 import CategoriesView from '../components/Profile/CategoriesView';
-import {
-  ClothService,
-  OutfitService,
-  ActivityLogService,
-  CategoryService,
-  AnalyticsService,
-} from '../services/data';
+import * as ClothService from '../services/clothService';
+import * as OutfitService from '../services/outfitService';
+import * as ActivityLogService from '../services/activityLogService';
+import * as CategoryService from '../services/categoryService';
+import * as AnalyticsService from '../services/analyticsService';
 
 export default function Profile() {
   const [currentView, setCurrentView] = useState('profile'); // 'profile', 'settings', 'categories'

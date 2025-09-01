@@ -4,7 +4,7 @@ import { Camera, Upload, X, ChevronDown, CheckCircle, AlertCircle, Loader2, Chev
 import Button from './common/Button';
 import Input from './common/Input';
 import Select from './common/Select';
-import { CategoryService } from '../services/data';
+import * as CategoryService from '../services/categoryService';
 
 const FormField = ({ label, id, required, children, className, error }) => (
     <div className={className}>

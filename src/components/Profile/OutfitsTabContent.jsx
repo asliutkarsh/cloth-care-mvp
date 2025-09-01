@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Plus } from 'lucide-react';
-import { OutfitService, ClothService } from '../../services/data';
+import * as ClothService from '../../services/clothService';
+import * as OutfitService from '../../services/clothService';
+
 import Button from '../common/Button';
 // You would create this modal component
 // import CreateOutfitModal from './CreateOutfitModal'; 

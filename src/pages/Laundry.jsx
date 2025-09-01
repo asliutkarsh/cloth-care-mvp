@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { LaundryService } from "../services/data";
+import * as LaundryService from '../services/laundryService';
+
 import AnimatedPage from "../components/AnimatedPage";
 import SectionHeader from "../components/common/SectionHeader";
 import Button from "../components/common/Button";

@@ -4,7 +4,9 @@ import ThemeToggle from '../ThemeToggle';
 import Button from '../common/Button';
 import Select from '../common/Select';
 import Input from '../common/Input';
-import { NotificationService, InitializationService } from '../../services/data';
+import * as NotificationService from '../../services/notificationService';
+import * as InitializationService from '../../services/initializationService';
+
 
 const SettingsMenuItem = ({ title, subtitle, onClick, danger = false }) => (
     <Button onClick={onClick} variant={danger ? 'danger' : 'ghost'} size="sm" className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">

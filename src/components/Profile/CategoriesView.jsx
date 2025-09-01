@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Trash2, Pencil } from 'lucide-react';
-import { CategoryService } from '../../services/data';
-import { AdvancedAnalyticsService } from '../../services/data';
+import * as CategoryService from '../../services/categoryService';
+import * as AdvancedAnalyticsService from '../../services/advancedAnalyticsService';
+
 import Button from '../common/Button';
 import Input from '../common/Input';
 import Modal from '../common/Modal';

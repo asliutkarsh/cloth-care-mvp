@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Filter, X, Shirt } from 'lucide-react';
 import Button from '../common/Button';
-import { ClothService, CategoryService, FilterService } from '../../services/data';
+import * as CategoryService from '../../services/categoryService';
+import * as FilterService from '../../services/filterService';
+import * as ClothService from '../../services/clothService';
 
 export default function ClothesTabContent() {
   const [clothes, setClothes] = useState([]);

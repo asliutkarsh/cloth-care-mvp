@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import ClothCard from "../components/ClothCard";
 import AddClothModal from "../components/AddClothModal";
 import AnimatedPage from "../components/AnimatedPage";
-import { ClothService, CategoryService, FilterService } from "../services/data";
+import * as ClothService from '../services/clothService';
+import * as FilterService from '../services/filterService';
+import * as CategoryService from '../services/categoryService';
+
+
 import SectionHeader from "../components/common/SectionHeader";
 import Button from "../components/common/Button";
 

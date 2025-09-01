@@ -1,12 +1,91 @@
-# React + Vite
+# Cloth Care MVP
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A web application to help you manage your wardrobe and take better care of your clothes.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+*   **Wardrobe Management:** Add, view, and organize your clothes.
+*   **Activity Tracking:** Keep track of when you wear your clothes and when they need to be washed.
+*   **Calendar View:** See your clothing activity on a calendar.
+*   **Care Tips:** Get tips on how to best care for your clothes.
+*   **Authentication:** User accounts to keep your wardrobe private.
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+*   **Frontend:** [React](https://react.dev/)
+*   **Build Tool:** [Vite](https://vitejs.dev/)
+*   **Routing:** [React Router](https://reactrouter.com/)
+*   **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+*   **Animations:** [Framer Motion](https://www.framer.com/motion/)
+*   **Icons:** [Lucide React](https://lucide.dev/)
+
+## Getting Started
+
+To get a local copy up and running, follow these simple steps.
+
+### Prerequisites
+
+*   [Node.js](https://nodejs.org/en/) (which comes with [npm](https://www.npmjs.com/))
+
+### Installation
+
+1.  Clone the repo
+    ```sh
+    git clone https://github.com/your_username/cloth-care-mvp.git
+    ```
+2.  Install NPM packages
+    ```sh
+    npm install
+    ```
+
+### Running the Application
+
+```sh
+npm run dev
+```
+
+This will start the development server, usually at `http://localhost:5173/`.
+
+## Available Scripts
+
+In the project directory, you can run:
+
+*   `npm run dev`: Runs the app in the development mode.
+*   `npm run build`: Builds the app for production to the `dist` folder.
+*   `npm run lint`: Lints the codebase using ESLint.
+*   `npm run preview`: Serves the production build locally.
+
+## Folder Structure
+
+```
+.
+├── src
+│   ├── components
+│   ├── context
+│   ├── layouts
+│   ├── pages
+│   └── services
+├── public
+└── ...
+```
+
+*   `src/components`: Contains reusable React components.
+*   `src/context`: Holds React context providers for state management.
+*   `src/layouts`: Contains layout components that wrap pages.
+*   `src/pages`: Contains the main pages of the application.
+*   `src/services`: For any external data fetching or services.
+*   `public`: Contains static assets.
+
+## Contributing
+
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1.  Fork the Project
+2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3.  Commit your Changes (`git commit -m '''Add some AmazingFeature'''`)
+4.  Push to the Branch (`git push origin feature/AmazingFeature`)
+5.  Open a Pull Request
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.

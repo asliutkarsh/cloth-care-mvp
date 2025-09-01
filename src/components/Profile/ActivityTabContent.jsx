@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Shirt } from 'lucide-react';
-import { ActivityLogService, OutfitService, ClothService } from '../../services/data';
+import * as ActivityLogService from '../../services/activityLogService';
+import * as OutfitService from '../../services/outfitService';
+import * as ClothService from '../../services/clothService';
+
+
 
 export default function ActivityTabContent() {
   const [activities, setActivities] = useState([]);

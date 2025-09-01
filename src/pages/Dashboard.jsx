@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import AnimatedPage from "../components/AnimatedPage";
 import { Link } from "react-router-dom";
-import { AnalyticsService, InitializationService } from '../services/data';
+import * as AnalyticsService from '../services/analyticsService';
+import * as InitializationService from '../services/initializationService';
 import { Card } from '../components/common/Card';
 import SectionHeader from '../components/common/SectionHeader';
 
@@ -10,7 +11,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Initialize the app which creates default categories if none exist
-    // InitializationService.initializeApp();
+    InitializationService.initializeApp();
     
     // Fetch wardrobe stats
     const wardrobeStats = AnalyticsService.getWardrobeStats();
