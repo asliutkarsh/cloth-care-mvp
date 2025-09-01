@@ -33,9 +33,18 @@ export default function AddClothModal({ open, onClose, onAdd }) {
     const cameraInputRef = useRef(null);
 
     useEffect(() => {
-        if (open) {
-            setCategories(CategoryService.getAll());
-        }
+        const loadCategories = async () => {
+            if (!open) return;
+            try {
+                const categories = await CategoryService.getAll();
+                setCategories(Array.isArray(categories) ? categories : []);
+            } catch (error) {
+                console.error('Error loading categories:', error);
+                setCategories([]);
+            }
+        };
+        
+        loadCategories();
     }, [open]);
 
     // Reset form when opening/closing

@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, X, ChevronDown, CheckCircle, AlertCircle, Loader2, ChevronsUpDown } from 'lucide-react';
-import Button from '../components/common/Button';
-import Input from '../components/common/Input';
-import Select from '../components/common/Select';
+import Button from '../../components/common/Button';
+import Input from '../../components/common/Input';
+import Select from '../../components/common/Select';
 
 // A reusable component for form fields to maintain consistent styling
 const FormField = ({ label, id, required, children, className, error }) => (

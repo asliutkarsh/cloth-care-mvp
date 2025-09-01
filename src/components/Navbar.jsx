@@ -1,18 +1,16 @@
-import { Link, useLocation } from 'react-router-dom'
-import ThemeToggle from './ThemeToggle'
-import { motion } from 'framer-motion'
-import { useAuth } from '../context/AuthContext'
-import { useState } from 'react'
-import { useNavigate } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
-import { House, CalendarDays, WashingMachine, User } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import ThemeToggle from './ThemeToggle';
+import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
+import { useState } from 'react';
+import { ChevronRight, House, CalendarDays, WashingMachine, User } from 'lucide-react';
 
 export default function Navbar() {
-  const { user, logout } = useAuth()
-  const location = useLocation()
-  const isLanding = location.pathname === '/'
-  const [open, setOpen] = useState(false)
-  const navigate = useNavigate()
+  const { user } = useAuth();
+  const location = useLocation();
+  const isLanding = location.pathname === '/';
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   const navItems = [
     { to: '/dashboard', label: 'Dashboard', icon: <House size={24} color="#e042f5" /> },
@@ -21,7 +19,6 @@ export default function Navbar() {
     { to: '/profile', label: 'Profile', icon: <User size={24} color="#e042f5" /> },
   ];
 
-
   return (
     <motion.nav
       initial={{ y: -10, opacity: 0 }}
@@ -29,58 +26,51 @@ export default function Navbar() {
       transition={{ duration: 0.3 }}
       className="sticky top-0 z-20 p-3 md:p-4 backdrop-blur supports-[backdrop-filter]:bg-transparent dark:supports-[backdrop-filter]:bg-transparent border-b border-white/20"
     >
-      {/* if user is not logged in */}
+      {/* Guest view */}
       {!user && (
-        <div className="container flex items-center justify-between sm:justify-around mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="container flex items-center justify-between mx-auto px-4 sm:px-6 lg:px-8">
           <Link to="/" className="font-bold text-xl logo-gradient">
             ClothCare
           </Link>
-
           <ThemeToggle />
         </div>
       )}
 
-      {/* if user is logged in and landing page */}
+      {/* Logged-in Landing Page view */}
       {user && isLanding && (
-        <div className="container flex items-center justify-between sm:justify-around mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="container flex items-center justify-between mx-auto px-4 sm:px-6 lg:px-8">
           <Link to="/" className="font-bold text-xl logo-gradient">
             ClothCare
           </Link>
-
           <motion.button
-            whileHover={{ scale: 1.02, backgroundColor: "rgba(255, 255, 255, 0.1)" }}
+            whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
             whileTap={{ scale: 0.98 }}
             onClick={() => {
-              navigate("/dashboard");
+              navigate('/dashboard');
               setOpen(false);
             }}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg 
-                 font-semibold text-white 
-                 bg-gradient-to-b from-gray-700 to-gray-900/60
-                 dark:from-gray-900 dark:to-gray-800/70
-                 shadow-md hover:shadow-lg transition-all"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg font-semibold text-white 
+              bg-gradient-to-b from-gray-700 to-gray-900/60 dark:from-gray-900 dark:to-gray-800/70
+              shadow-md hover:shadow-lg transition-all"
           >
             Dashboard
             <ChevronRight className="w-4 h-4" />
           </motion.button>
-
-
         </div>
       )}
 
-      {/* if user is logged in and not Landing page and desktop */}
+      {/* Logged-in, not Landing */}
       {user && !isLanding && (
-        <div className="container hidden sm:flex items-center justify-between mx-auto px-4 sm:px-0 lg:px-6">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+          {/* Brand */}
           <Link to="/" className="font-bold text-xl logo-gradient">
             ClothCare
           </Link>
-          <div className="flex justify-end items-center gap-3">
+
+          {/* Desktop Nav */}
+          <div className="hidden md:flex items-center gap-4">
             {navItems.map((item, idx) => (
-              <motion.div
-                key={idx}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
+              <motion.div key={idx} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                 <Link
                   to={item.to}
                   onClick={() => setOpen(false)}
@@ -93,18 +83,13 @@ export default function Navbar() {
             ))}
           </div>
 
-
-        </div>
-      )}
-
-      {/* if user is logged in and not Landing page and mobile */}
-      {user && !isLanding && (
-        <div className="container flex items-center justify-between sm:justify-around mx-auto px-4 sm:px-6 lg:px-8 md:hidden">
-          <Link to="/" className="font-bold text-xl logo-gradient">
-            ClothCare
-          </Link>
+          {/* Mobile Placeholder (You can later add mobile menu toggle if needed) */}
+          <div className="md:hidden">
+            {/* Placeholder for future mobile menu */}
+            {/* You can add a menu toggle button here if needed */}
+          </div>
         </div>
       )}
     </motion.nav>
-  )
+  );
 }

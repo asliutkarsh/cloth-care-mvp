@@ -94,18 +94,55 @@ export async function getNumberOfClothesByCategory(categoryId, subcategories) {
   return allClothes.filter(cloth => categoryIds.includes(cloth.categoryId)).length;
 }  
 
+/**
+ * Moves clothes from specified categories to a new category
+ * @param {string[]} categoryIds - Array of category IDs to move clothes from
+ * @param {string} newCategoryId - ID of the target category
+ * @returns {Promise<{success: boolean, movedCount: number}>} Result of the operation
+ * @throws {Error} If validation fails or operation cannot be completed
+ */
 export async function moveClothesToCategory(categoryIds, newCategoryId) {
+  // Input validation
+  if (!Array.isArray(categoryIds) || categoryIds.length === 0) {
+    throw new Error("Invalid category IDs provided");
+  }
+  
+  if (!newCategoryId || typeof newCategoryId !== 'string') {
+    throw new Error("Invalid target category ID");
+  }
+
   if (categoryIds.includes(newCategoryId)) {
     throw new Error("Cannot reassign clothes to the same category being deleted.");
   }
 
-  const clothes = await ClothService.getAll();
-  const clothesToMove = clothes.filter(cloth => categoryIds.includes(cloth.categoryId));
+  try {
+    // Verify the target category exists
+    const targetCategory = await CategoryService.getCategoryById(newCategoryId);
+    if (!targetCategory) {
+      throw new Error(`Target category with ID ${newCategoryId} not found`);
+    }
 
-  for (const cloth of clothesToMove) {
-    cloth.categoryId = newCategoryId;
-    await ClothService.update(cloth.id, cloth);
+    // Get all clothes in the source categories
+    const clothes = await ClothService.getAll();
+    const clothesToMove = clothes.filter(cloth => categoryIds.includes(cloth.categoryId));
+
+    if (clothesToMove.length === 0) {
+      return { success: true, movedCount: 0 };
+    }
+
+    // Update each cloth's category
+    const updatePromises = clothesToMove.map(cloth => {
+      return ClothService.update(cloth.id, { ...cloth, categoryId: newCategoryId });
+    });
+
+    await Promise.all(updatePromises);
+
+    return { 
+      success: true, 
+      movedCount: clothesToMove.length 
+    };
+  } catch (error) {
+    console.error('Error moving clothes between categories:', error);
+    throw new Error(`Failed to move clothes: ${error.message}`);
   }
-
-  return true;
 }

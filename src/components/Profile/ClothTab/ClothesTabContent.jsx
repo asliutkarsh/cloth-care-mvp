@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Filter, X, Shirt } from 'lucide-react';
-import Button from '../common/Button';
-import * as CategoryService from '../../services/categoryService';
-import * as FilterService from '../../services/filterService';
-import * as ClothService from '../../services/clothService';
+import Button from '../../common/Button';
+import * as CategoryService from '../../../services/categoryService';
+import * as FilterService from '../../../services/filterService';
+import * as ClothService from '../../../services/clothService';
 
 export default function ClothesTabContent() {
   const [clothes, setClothes] = useState([]);
@@ -15,19 +15,31 @@ export default function ClothesTabContent() {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    setCategories(CategoryService.getAll());
-    applyFilters();
-  }, []);
-
-  const applyFilters = () => {
-    const filteredClothes = FilterService.filterClothes(filters);
-    setClothes(filteredClothes);
-  };
-
-  useEffect(() => {
-    applyFilters();
+  const applyFilters = useCallback(async () => {
+    try {
+      const filteredClothes = await FilterService.filterClothes(filters);
+      setClothes(Array.isArray(filteredClothes) ? filteredClothes : []);
+    } catch (error) {
+      console.error('Error applying filters:', error);
+      setClothes([]);
+    }
   }, [filters]);
+
+  // Initial load
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const categories = await CategoryService.getAll();
+        setCategories(Array.isArray(categories) ? categories : []);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        setCategories([]);
+      }
+    };
+    
+    loadCategories();
+    applyFilters();
+  }, [applyFilters]);
 
   const handleCategoryFilter = (categoryId) => {
     setFilters(prev => ({ ...prev, categoryIds: [categoryId] }));

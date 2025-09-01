@@ -10,11 +10,12 @@ import {
 } from 'lucide-react';
 import AnimatedPage from '../components/AnimatedPage';
 import SettingsView from '../components/Profile/SettingsView';
-import ClothesTabContent from '../components/Profile/ClothesTabContent';
-import OutfitsTabContent from '../components/Profile/OutfitsTabContent';
-import ActivityTabContent from '../components/Profile/ActivityTabContent';
+import ClothesTabContent from '../components/Profile/ClothTab/ClothesTabContent';
+import OutfitsTabContent from '../components/Profile/OutfitTab/OutfitsTabContent';
+import ActivityTabContent from '../components/Profile/ActivityTab/ActivityTabContent';
 import ProfileMainView from '../components/Profile/ProfileMainView';
 import CategoriesView from '../components/Profile/CategoriesView';
+import Wardrobe from './Wardrobe';
 import * as ClothService from '../services/clothService';
 import * as OutfitService from '../services/outfitService';
 import * as ActivityLogService from '../services/activityLogService';
@@ -33,7 +34,9 @@ export default function Profile() {
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
-    setStats(AnalyticsService.getWardrobeStats());
+    AnalyticsService.getWardrobeStats().then((stats) => {
+      setStats(stats);
+    });
   }, []);
 
   const handleUploadImage = (e) => {
@@ -47,13 +50,13 @@ export default function Profile() {
   const renderContent = () => {
     switch (activeTab) {
       case 'clothes':
-        return <ClothesTabContent />;
+        return <Wardrobe />;
       case 'outfits':
         return <OutfitsTabContent />;
       case 'activity':
         return <ActivityTabContent />;
       default:
-        return <ClothesTabContent />;
+        return <Wardrobe />;
     }
   };
 

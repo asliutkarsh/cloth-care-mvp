@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Shirt } from 'lucide-react';
-import * as ActivityLogService from '../../services/activityLogService';
-import * as OutfitService from '../../services/outfitService';
-import * as ClothService from '../../services/clothService';
+import * as ActivityLogService from '../../../services/activityLogService';
+import * as OutfitService from '../../../services/outfitService';
+import * as ClothService from '../../../services/clothService';
 
 
 
@@ -10,13 +10,28 @@ export default function ActivityTabContent() {
   const [activities, setActivities] = useState([]);
 
   useEffect(() => {
-    // Get recent logs sorted by date
-    const recentActivities = ActivityLogService.getAll().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    setActivities(recentActivities);
+    const loadActivities = async () => {
+      try {
+        const logs = await ActivityLogService.getAll();
+        const recentActivities = Array.isArray(logs) 
+          ? [...logs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          : [];
+        setActivities(recentActivities);
+      } catch (error) {
+        console.error('Error loading activities:', error);
+        setActivities([]);
+      }
+    };
+    
+    loadActivities();
   }, []);
 
   const getActivityDetails = (activity) => {
+    if (!activity) return { name: 'Unknown Activity', type: 'item' };
+    
     if (activity.type === 'outfit') {
+      // Note: This assumes getById is synchronous
+      // If it becomes async, you'll need to handle it differently
       const outfit = OutfitService.getById(activity.outfitId);
       return {
         name: outfit?.name || 'Unnamed Outfit',
@@ -24,11 +39,17 @@ export default function ActivityTabContent() {
       };
     }
     
-    const cloth = ClothService.getById(activity.clothIds[0]);
-    return {
-      name: cloth?.name || 'Unnamed Item',
-      type: 'item'
-    };
+    if (activity.clothIds?.[0]) {
+      // Note: This assumes getById is synchronous
+      // If it becomes async, you'll need to handle it differently
+      const cloth = ClothService.getById(activity.clothIds[0]);
+      return {
+        name: cloth?.name || 'Unnamed Item',
+        type: 'item'
+      };
+    }
+    
+    return { name: 'Unknown Activity', type: 'item' };
   };
 
   return (

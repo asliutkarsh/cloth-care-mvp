@@ -12,12 +12,18 @@ export default function Laundry() {
   const [selectedPressing, setSelectedPressing] = useState([]);
 
   useEffect(() => {
+    const loadLaundry = async () => {
+      try {
+        const status = await LaundryService.getLaundryStatus();
+        setLaundryStatus(status || { dirty: [], needsPressing: [] });
+      } catch (error) {
+        console.error('Error loading laundry status:', error);
+        setLaundryStatus({ dirty: [], needsPressing: [] });
+      }
+    };
+    
     loadLaundry();
   }, []);
-
-  const loadLaundry = () => {
-    setLaundryStatus(LaundryService.getLaundryStatus());
-  };
 
   const handleSelectDirty = (clothId) => {
     setSelectedDirty(prev =>
@@ -31,18 +37,36 @@ export default function Laundry() {
     );
   };
 
-  const handleWash = () => {
-    if (selectedDirty.length === 0) return;
-    LaundryService.washSelectedClothes(selectedDirty);
-    setSelectedDirty([]);
-    loadLaundry();
+  const loadLaundry = async () => {
+    try {
+      const status = await LaundryService.getLaundryStatus();
+      setLaundryStatus(status || { dirty: [], needsPressing: [] });
+    } catch (error) {
+      console.error('Error loading laundry status:', error);
+      setLaundryStatus({ dirty: [], needsPressing: [] });
+    }
   };
 
-  const handlePress = () => {
+  const handleWash = async () => {
+    if (selectedDirty.length === 0) return;
+    try {
+      await LaundryService.washSelectedClothes(selectedDirty);
+      setSelectedDirty([]);
+      await loadLaundry();
+    } catch (error) {
+      console.error('Error washing clothes:', error);
+    }
+  };
+
+  const handlePress = async () => {
     if (selectedPressing.length === 0) return;
-    LaundryService.pressSelectedClothes(selectedPressing);
-    setSelectedPressing([]);
-    loadLaundry();
+    try {
+      await LaundryService.pressSelectedClothes(selectedPressing);
+      setSelectedPressing([]);
+      await loadLaundry();
+    } catch (error) {
+      console.error('Error pressing clothes:', error);
+    }
   };
 
   return (

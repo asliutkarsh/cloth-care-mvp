@@ -143,7 +143,7 @@ export default function AddActivityModal({ open, onClose, date, outfits = [], cl
                                             <div>
                                                 <div className="font-medium text-gray-900 dark:text-white">{outfit.name}</div>
                                                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                                                    {outfit.items.join(', ')}
+                                                    {Array.isArray(outfit.items) ? outfit.items.join(', ') : ''}
                                                 </div>
                                             </div>
                                         </div>

@@ -7,12 +7,11 @@ import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import Wardrobe from "./pages/Wardrobe";
 import Laundry from "./pages/Laundry";
-import CareTips from "./pages/CareTips";
+// import CareTips from "./pages/CareTips";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./layouts/AppLayout";
 import Calender from "./pages/Calender";
-import AddNewCloth from "./pages/AddNewCloth";
 
 export default function App() {
   return (
@@ -49,14 +48,14 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
+            {/* <Route
               path="/care"
               element={
                 <ProtectedRoute>
                   <CareTips />
                 </ProtectedRoute>
               }
-            />
+            /> */}
             <Route
               path="/calender"
               element={
@@ -65,14 +64,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/add"
-              element={
-                <ProtectedRoute>
-                  <AddNewCloth />
-                </ProtectedRoute>
-              }
-            />
+            
             <Route
               path="/profile"
               element={

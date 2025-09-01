@@ -29,24 +29,42 @@ export default function Calendar() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
+  const loadData = async () => {
+    try {
+      // Make sure these service methods return promises
+      const [allActivities, allOutfits, cleanClothes] = await Promise.all([
+        ActivityLogService.getAll(),
+        OutfitService.getAll(),
+        ClothService.getCleanClothes()
+      ]);
+
+      // Ensure allActivities is an array before using reduce
+      const activitiesArray = Array.isArray(allActivities) ? allActivities : [];
+      const groupedActivities = activitiesArray.reduce((acc, activity) => {
+        if (!activity || !activity.date) return acc;
+        const date = activity.date;
+        if (!acc[date]) {
+          acc[date] = [];
+        }
+        acc[date].push(activity);
+        return acc;
+      }, {});
+
+      setActivities(groupedActivities);
+      setOutfits(Array.isArray(allOutfits) ? allOutfits : []);
+      setClothes(Array.isArray(cleanClothes) ? cleanClothes : []);
+    } catch (error) {
+      console.error('Error loading calendar data:', error);
+      // Set default empty values on error
+      setActivities({});
+      setOutfits([]);
+      setClothes([]);
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, []);
-
-  const loadData = () => {
-    const allActivities = ActivityLogService.getAll();
-    const groupedActivities = allActivities.reduce((acc, activity) => {
-      const date = activity.date;
-      if (!acc[date]) {
-        acc[date] = [];
-      }
-      acc[date].push(activity);
-      return acc;
-    }, {});
-    setActivities(groupedActivities);
-    setOutfits(OutfitService.getAll());
-    setClothes(ClothService.getCleanClothes()); // Only show clean clothes
-  };
 
   // Calendar helpers
   const monthNames = [
@@ -110,30 +128,55 @@ export default function Calendar() {
   }, [searchParams, navigate]);
 
   const addActivity = (activityData) => {
-    const effectiveDate = activityData?.date instanceof Date && !isNaN(activityData.date) ? activityData.date : selectedDate;
-    ActivityLogService.logActivity({
-      ...activityData,
-      date: formatDate(effectiveDate),
-    });
-    loadData(); // Refresh data
-    setShowAddModal(false);
+    try {
+      const effectiveDate = activityData?.date instanceof Date && !isNaN(activityData.date) ? activityData.date : selectedDate;
+      
+      // Ensure items is always an array
+      const items = Array.isArray(activityData?.items) ? activityData.items : [];
+      
+      ActivityLogService.logActivity({
+        ...activityData,
+        items, // Use the validated items array
+        date: formatDate(effectiveDate),
+      });
+      
+      loadData(); // Refresh data
+    } catch (error) {
+      console.error('Error adding activity:', error);
+    } finally {
+      setShowAddModal(false);
+    }
   };
 
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDay = getFirstDayOfMonth(currentDate);
 
   const getActivityDetails = (activity) => {
+    if (!activity) {
+      return { name: 'Unknown', items: [] };
+    }
+
     if (activity.type === 'outfit') {
-      const outfit = OutfitService.getById(activity.outfitId);
+      const outfit = activity.outfitId ? OutfitService.getById(activity.outfitId) : null;
+      const outfitClothes = activity.outfitId ? OutfitService.getClothesInOutfit(activity.outfitId) : [];
       return {
         name: outfit?.name || 'Outfit',
-        items: OutfitService.getClothesInOutfit(activity.outfitId).map(c => c.name)
+        items: Array.isArray(outfitClothes) 
+          ? outfitClothes.map(c => c?.name).filter(Boolean) 
+          : []
       };
     } else {
-      const cloth = ClothService.getById(activity.clothIds[0]);
+      const clothIds = Array.isArray(activity.clothIds) ? activity.clothIds : [];
+      const firstCloth = clothIds.length > 0 ? ClothService.getById(clothIds[0]) : null;
+      
       return {
-        name: cloth?.name || 'Item',
-        items: activity.clothIds.map(id => ClothService.getById(id)?.name).filter(Boolean)
+        name: firstCloth?.name || 'Item',
+        items: clothIds
+          .map(id => {
+            const cloth = ClothService.getById(id);
+            return cloth?.name;
+          })
+          .filter(Boolean)
       };
     }
   };

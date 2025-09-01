@@ -23,8 +23,14 @@ export default function CategoriesView({ onBack }) {
     loadCategories();
   }, []);
 
-  const loadCategories = () => {
-    setCategories(CategoryService.getAll());
+  const loadCategories = async () => {
+    try {
+      const categories = await CategoryService.getAll();
+      setCategories(Array.isArray(categories) ? categories : []);
+    } catch (error) {
+      console.error('Error loading categories:', error);
+      setCategories([]);
+    }
   };
 
   const getEffectiveMaxWearCount = (parentId) => {

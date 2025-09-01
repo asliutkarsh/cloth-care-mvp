@@ -1,29 +1,30 @@
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
 import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
-import { CirclePlus, FilePlus, BookPlus } from 'lucide-react';
-import FabMenu from '../components/common/FabMenu'
-import AddClothModal from '../components/AddClothModal'
+import { FilePlus, BookPlus } from 'lucide-react';
+import FabMenu from '../components/common/FabMenu';
+import AddClothModal from '../components/AddClothModal';
+import * as ClothService from '../services/clothService';
 
 export default function AppLayout() {
-  // Optional: could be used later for contextual UI changes by route
-  // const location = useLocation();
   const { user } = useAuth();
-
   const [openAdd, setOpenAdd] = useState(false);
-
   const navigate = useNavigate();
 
-  const handleAddClick = () => {
-    setOpenAdd(true);
-  };
+  const handleAddClick = () => setOpenAdd(true);
 
-  const addCloth = (item) => {
-    console.log('Added cloth:', item);
+  const addCloth = async (cloth) => {
+    try {
+      const response = await ClothService.create(cloth);
+      console.log('Cloth added:', response);
+      // Optionally: show toast or refresh cloth list
+    } catch (error) {
+      console.error('Error adding cloth:', error);
+      // Optionally: show error toast
+    }
   };
-
 
   const handleLogClick = () => {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -41,7 +42,7 @@ export default function AppLayout() {
         }}
       />
 
-      {/* Dark mode background (Emerald Void) */}
+      {/* Dark mode background */}
       <div
         className="absolute inset-0 z-0 pointer-events-none hidden dark:block"
         style={{
@@ -49,7 +50,7 @@ export default function AppLayout() {
         }}
       />
 
-      {/* Dark mode emerald spotlight overlay */}
+      {/* Emerald spotlight */}
       <div
         className="absolute inset-0 z-0 pointer-events-none hidden dark:block"
         style={{
@@ -63,22 +64,29 @@ export default function AppLayout() {
         <main className="flex-1">
           <Outlet />
         </main>
-        {/* Mobile bottom navigation for logged-in users */}
-        {user && <BottomNav className="md:hidden" />}
 
-        {/* Desktop FAB for logged-in users */}
-        {user &&
-          <div className="fixed right-4 bottom-4">
+        {/* Mobile BottomNav */}
+        {user && (
+          <div className="md:hidden">
+            <BottomNav />
+          </div>
+        )}
+
+        {/* Desktop FAB */}
+        {user && (
+          <div className="hidden md:block fixed bottom-4 right-4">
             <FabMenu
-              className="justify-end"
+              translateX={8}
               actions={[
                 { label: 'Add New', icon: FilePlus, onClick: handleAddClick },
                 { label: 'Log Outfit', icon: BookPlus, onClick: handleLogClick },
               ]}
             />
           </div>
-        }
+        )}
       </div>
+
+      {/* Add Cloth Modal */}
       {openAdd && (
         <AddClothModal
           open={openAdd}
@@ -90,6 +98,5 @@ export default function AppLayout() {
         />
       )}
     </div>
-
   );
 }
