@@ -19,7 +19,7 @@ const FormField = ({ label, id, required, children, className, error }) => (
 export default function AddClothModal({ open, onClose, onAdd }) {
     const [formData, setFormData] = useState({
         name: '', description: '', color: '', customColor: '', image: null,
-        categoryId: '', brand: '', material: '', season: '',
+        categoryId: '', subcategoryId: '', brand: '', material: '', season: '',
         cost: '', purchaseDate: '', requiresPressing: false
     });
     const [errors, setErrors] = useState({});
@@ -29,6 +29,7 @@ export default function AddClothModal({ open, onClose, onAdd }) {
     const [isLoading, setIsLoading] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [categories, setCategories] = useState([]);
+    const [subcategories, setSubcategories] = useState([]);
     const fileInputRef = useRef(null);
     const cameraInputRef = useRef(null);
 
@@ -36,23 +37,38 @@ export default function AddClothModal({ open, onClose, onAdd }) {
         const loadCategories = async () => {
             if (!open) return;
             try {
-                const categories = await CategoryService.getAll();
+                const categories = await CategoryService.getAllParents();
                 setCategories(Array.isArray(categories) ? categories : []);
             } catch (error) {
                 console.error('Error loading categories:', error);
                 setCategories([]);
             }
         };
-        
+
         loadCategories();
     }, [open]);
 
+    useEffect(() => {
+        const loadSubcategories = async () => {
+            if (!open) return;
+            try {
+                const subcategories = await CategoryService.getSubcategories(formData.categoryId);
+                setSubcategories(Array.isArray(subcategories) ? subcategories : []);
+            } catch (error) {
+                console.error('Error loading subcategories:', error);
+                setSubcategories([]);
+            }
+        };
+
+        loadSubcategories();
+    }, [formData.categoryId, open]);
+    
     // Reset form when opening/closing
     useEffect(() => {
         if (!open) return;
         setFormData({
             name: '', description: '', color: '', customColor: '', image: null,
-            categoryId: '', brand: '', material: '', season: '',
+            categoryId: '', subcategoryId: '', brand: '', material: '', season: '',
             cost: '', purchaseDate: '', requiresPressing: false
         });
         setErrors({});
@@ -69,6 +85,9 @@ export default function AddClothModal({ open, onClose, onAdd }) {
     const seasons = ['All Season', 'Spring', 'Summer', 'Fall', 'Winter'];
 
     const handleInputChange = (field, value) => {
+        if (field === 'categoryId') {
+            setFormData(prev => ({ ...prev, subcategoryId: '' }));
+        }
         setFormData(prev => ({ ...prev, [field]: value }));
         if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
     };
@@ -170,6 +189,15 @@ export default function AddClothModal({ open, onClose, onAdd }) {
                                 {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                             </Select>
                         </FormField>
+
+                        {subcategories && subcategories.length > 0 && (
+                            <FormField label="Subcategory" id="subcategory" error={errors.subcategoryId}>
+                                <Select id="subcategory" value={formData.subcategoryId} onChange={(e) => handleInputChange('subcategoryId', e.target.value)} aria-invalid={!!errors.subcategoryId}>
+                                    <option value="" disabled>Select Subcategory</option>
+                                    {subcategories.map(sub => <option key={sub.id} value={sub.id}>{sub.name}</option>)}
+                                </Select>
+                            </FormField>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-4">

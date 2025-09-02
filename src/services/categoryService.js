@@ -20,6 +20,16 @@ export async function getAll() {
   return await Storage.get(Storage.KEYS.CATEGORIES) || [];
 }
 
+export async function getAllParents() {
+  const categories = await getAll();
+  return categories.filter(cat => cat.parentId === null);
+}
+
+export async function getSubcategories(parentId) {
+  const categories = await getAll();
+  return categories.filter(cat => cat.parentId === parentId);
+}
+
 /**
  * Finds a single category by its ID.
  * @param {string} id The ID of the category to find.

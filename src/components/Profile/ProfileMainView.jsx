@@ -67,8 +67,8 @@ export default function ProfileMainView({
                   <div className="text-xs text-gray-600 dark:text-gray-400">Outfits</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold text-purple-600">{stats.totalActivities}</div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Activities</div>
+                  <div className="text-xl font-bold text-purple-600">{stats.totalCategories}</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Categories</div>
                 </div>
               </div>
             )}

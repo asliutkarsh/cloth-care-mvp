@@ -78,7 +78,7 @@ export default function AppLayout() {
             <FabMenu
               translateX={8}
               actions={[
-                { label: 'Add New', icon: FilePlus, onClick: handleAddClick },
+                { label: 'Add Item', icon: FilePlus, onClick: handleAddClick },
                 { label: 'Log Outfit', icon: BookPlus, onClick: handleLogClick },
               ]}
             />

@@ -4,10 +4,10 @@ import * as ActivityLogService from './activityLogService.js';
 import * as CategoryService from './categoryService.js';
 
 export async function getWardrobeStats() {
-  const [clothes, outfits, activities] = await Promise.all([
+  const [clothes, outfits, categories] = await Promise.all([
     ClothService.getAll(),
     OutfitService.getAll(),
-    ActivityLogService.getAll()
+    CategoryService.getAll()
   ]);
   
   const mostUsedClothes = await getMostUsedClothes(5);
@@ -16,7 +16,7 @@ export async function getWardrobeStats() {
   return {
     totalClothes: clothes.length,
     totalOutfits: outfits.length,
-    totalActivities: activities.length,
+    totalCategories: categories.length,
     dirtyClothes: clothes.filter(c => c.status === ClothService.STATUSES.DIRTY).length,
     cleanClothes: clothes.filter(c => c.status === ClothService.STATUSES.CLEAN).length,
     needsPressing: clothes.filter(c => c.status === ClothService.STATUSES.NEEDS_PRESSING).length,
