@@ -1,11 +1,29 @@
 import React from 'react';
 import clsx from 'clsx';
+import { useTheme } from '../../context/ThemeContext';
 
-export function Card({ className, children, padded = true, shadow = 'sm', ...props }) {
+export function Card({ className, children, padded = true, shadow = 'sm', variant = 'default', ...props }) {
+  const { currentTheme, getThemeConfig } = useTheme();
+  const themeConfig = getThemeConfig();
+  
+  const getCardStyles = () => {
+    switch (variant) {
+      case 'elevated':
+        return 'bg-white/95 dark:bg-gray-800/95 border-emerald-200/50 dark:border-emerald-700/50 shadow-lg';
+      case 'glass':
+        return 'bg-white/70 dark:bg-gray-800/70 border-white/30 dark:border-gray-600/30 backdrop-blur-md';
+      case 'accent':
+        return `bg-gradient-to-br ${themeConfig.gradient} border-emerald-300/50 dark:border-emerald-600/50`;
+      default:
+        return 'bg-white/80 dark:bg-gray-800/80 border-gray-200/50 dark:border-gray-700/50 backdrop-blur';
+    }
+  };
+
   return (
     <div
       className={clsx(
-        'rounded-xl border border-white/20 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur',
+        'rounded-xl border backdrop-blur transition-all duration-300 hover:shadow-md',
+        getCardStyles(),
         shadow === 'none' && 'shadow-none',
         shadow === 'sm' && 'shadow-sm',
         shadow === 'md' && 'shadow',
