@@ -3,22 +3,15 @@ import {
   User,
   Camera,
   Edit3,
-  Grid3x3,
   Settings as SettingsIcon,
 } from 'lucide-react'
 import Button from '../ui/Button'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/Tabs'
 
 export default function ProfileMainView({
   userData,
   profileImage,
   stats,
   onUploadImage,
-  onGoCategories,
-  onGoSettings,
-  activeTab,
-  setActiveTab,
-  children,
 }) {
   return (
     <div className="max-w-6xl mx-auto p-4 pb-24">
@@ -107,14 +100,6 @@ export default function ProfileMainView({
             <Button
               variant="secondary"
               className="flex-1 gap-2"
-              onClick={onGoCategories}
-            >
-              <Grid3x3 size={16} />
-              <span className="text-sm">Categories</span>
-            </Button>
-            <Button
-              variant="secondary"
-              className="flex-1 gap-2"
               onClick={onGoSettings}
             >
               <SettingsIcon size={16} />
@@ -123,17 +108,6 @@ export default function ProfileMainView({
           </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="clothes">Clothes</TabsTrigger>
-            <TabsTrigger value="outfits">Outfits</TabsTrigger>
-            <TabsTrigger value="activity">Activity</TabsTrigger>
-          </TabsList>
-
-          {/* Content Area */}
-          <div className="p-4">{children}</div>
-        </Tabs>
       </div>
     </div>
   )

@@ -4,18 +4,10 @@ import { ArrowLeft, ChevronRight, LogOut } from 'lucide-react';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useAuthStore } from '../stores/useAuthStore';
 import ThemeToggle from '../components/ThemeToggle';
-import { Button } from '../components/ui';
+import { Button, SettingsMenuItem } from '../components/ui';
 import ConfirmationModal from '../components/modal/ConfirmationModal';
 
-const SettingsMenuItem = ({ title, subtitle, onClick, danger = false }) => (
-  <button onClick={onClick} className={`w-full flex items-center justify-between p-4 rounded-lg text-left transition-colors ${danger ? 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20' : 'hover:bg-gray-50/50 dark:hover:bg-gray-700/50'}`}>
-    <div>
-      <div className="font-medium text-base">{title}</div>
-      {subtitle && <div className={`text-sm ${danger ? 'text-red-500/80' : 'text-gray-600 dark:text-gray-400'}`}>{subtitle}</div>}
-    </div>
-    <ChevronRight size={16} className="text-gray-400" />
-  </button>
-);
+
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -35,20 +27,6 @@ export default function Settings() {
       onConfirm: async () => {
         await resetApp();
         // After reset, log the user out and send to landing
-        await logout();
-        navigate('/');
-      },
-    });
-  };
-
-  const handleLogout = () => {
-    setConfirmState({
-      open: true,
-      title: 'Logout?',
-      message: 'Are you sure you want to log out of your account?',
-      confirmText: 'Logout',
-      isDanger: false,
-      onConfirm: async () => {
         await logout();
         navigate('/');
       },
@@ -88,26 +66,9 @@ export default function Settings() {
             <SettingsMenuItem title="Import Data" subtitle="Restore from a backup file" onClick={importData} />
             <SettingsMenuItem title="Reset App Data" subtitle="Clear all data (cannot be undone)" onClick={handleResetApp} danger />
           </div>
-
-          <Button onClick={handleLogout} variant="danger" fullWidth className="mt-6 flex items-center justify-center gap-2 py-3 text-base">
-            <LogOut size={20} />
-            <span className="font-medium">Logout</span>
-          </Button>
         </div>
       </div>
       
-      <ConfirmationModal
-        open={confirmState.open}
-        onClose={onConfirmClose}
-        onConfirm={() => {
-          confirmState.onConfirm?.();
-          onConfirmClose();
-        }}
-        title={confirmState.title}
-        message={confirmState.message}
-        confirmText={confirmState.confirmText}
-        isDanger={confirmState.isDanger}
-      />
     </div>
   );
 }
