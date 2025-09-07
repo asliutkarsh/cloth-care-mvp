@@ -1,26 +1,30 @@
 import { useState } from 'react'
-import { useAuth } from '../context/AuthContext'
+import { useAuthStore } from '../../stores/useAuthStore'
 import { useNavigate, Link } from 'react-router-dom'
-import AnimatedPage from '../components/AnimatedPage'
+import AnimatedPage from '../../components/AnimatedPage'
 import { motion } from 'framer-motion'
-import Button from '../components/common/Button'
-import Input from '../components/common/Input'
-import { useAlreadyLoggedInRedirect } from '../context/useAlreadyLoggedInRedirect'
+import Button from '../../components/ui/Button'
+import Input from '../../components/ui/Input'
+import { useAlreadyLoggedInRedirect } from '../../context/useAlreadyLoggedInRedirect'
 
 export default function Login() {
-  const { login, demoLogin } = useAuth()
+  const { login, demoLogin } = useAuthStore()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
+    setLoading(true)
     try {
-      login(email, password)
+      await login(email, password)
       navigate('/dashboard')
     } catch (err) {
       setError(err.message)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -29,8 +33,7 @@ export default function Login() {
     navigate('/dashboard')
   }
 
-    useAlreadyLoggedInRedirect();
-  
+  useAlreadyLoggedInRedirect()
 
   return (
     <AnimatedPage>
@@ -47,24 +50,31 @@ export default function Login() {
           </h2>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <Input
-            label={undefined}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email"
+            disabled={loading}
           />
           <Input
-            label={undefined}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             type="password"
             placeholder="Password"
+            disabled={loading}
           />
-          <Button type="submit" fullWidth>
-            Login
+          <Button type="submit" fullWidth disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
           </Button>
-          <Button type="button" onClick={handleDemo} variant="secondary" fullWidth size="md">
+          <Button
+            type="button"
+            onClick={handleDemo}
+            variant="secondary"
+            fullWidth
+            disabled={loading}
+          >
             Quick demo login
           </Button>
+
           <p className="text-sm text-center dark:text-gray-300">
             No account?{' '}
             <Link to="/signup" className="underline">

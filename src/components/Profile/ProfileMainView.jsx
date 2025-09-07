@@ -1,7 +1,13 @@
-import React from 'react';
-import { User, Camera, Edit3, Grid3x3, Settings as SettingsIcon } from 'lucide-react';
-import Button from '../common/Button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../common/Tabs';
+import React from 'react'
+import {
+  User,
+  Camera,
+  Edit3,
+  Grid3x3,
+  Settings as SettingsIcon,
+} from 'lucide-react'
+import Button from '../ui/Button'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/Tabs'
 
 export default function ProfileMainView({
   userData,
@@ -25,13 +31,19 @@ export default function ProfileMainView({
               <div className="relative">
                 <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden">
                   {profileImage ? (
-                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                    <img
+                      src={profileImage}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <User size={32} className="text-gray-400" />
                   )}
                 </div>
                 <button
-                  onClick={() => document.getElementById('profileImageInput').click()}
+                  onClick={() =>
+                    document.getElementById('profileImageInput').click()
+                  }
                   className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700"
                 >
                   <Camera size={12} />
@@ -46,8 +58,12 @@ export default function ProfileMainView({
               </div>
 
               <div className="flex-1">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{userData.name}</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Member since {userData.joinDate}</p>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {userData.name}
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Member since {userData.joinDate}
+                </p>
               </div>
 
               <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -59,16 +75,28 @@ export default function ProfileMainView({
             {stats && (
               <div className="hidden md:flex gap-6 ml-auto">
                 <div className="text-center">
-                  <div className="text-xl font-bold text-blue-600">{stats.totalClothes}</div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Clothes</div>
+                  <div className="text-xl font-bold text-blue-600">
+                    {stats.totalClothes}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    Clothes
+                  </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold text-green-600">{stats.totalOutfits}</div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Outfits</div>
+                  <div className="text-xl font-bold text-green-600">
+                    {stats.totalOutfits}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    Outfits
+                  </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-xl font-bold text-purple-600">{stats.totalActivities}</div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Activities</div>
+                  <div className="text-xl font-bold text-purple-600">
+                    {stats.totalActivities}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    Activities
+                  </div>
                 </div>
               </div>
             )}
@@ -76,11 +104,19 @@ export default function ProfileMainView({
 
           {/* Quick Actions */}
           <div className="flex gap-2 mt-4">
-            <Button variant="secondary" className="flex-1 gap-2" onClick={onGoCategories}>
+            <Button
+              variant="secondary"
+              className="flex-1 gap-2"
+              onClick={onGoCategories}
+            >
               <Grid3x3 size={16} />
               <span className="text-sm">Categories</span>
             </Button>
-            <Button variant="secondary" className="flex-1 gap-2" onClick={onGoSettings}>
+            <Button
+              variant="secondary"
+              className="flex-1 gap-2"
+              onClick={onGoSettings}
+            >
               <SettingsIcon size={16} />
               <span className="text-sm">Settings</span>
             </Button>
@@ -96,11 +132,9 @@ export default function ProfileMainView({
           </TabsList>
 
           {/* Content Area */}
-          <div className="p-4">
-            {children}
-          </div>
+          <div className="p-4">{children}</div>
         </Tabs>
       </div>
     </div>
-  );
+  )
 }

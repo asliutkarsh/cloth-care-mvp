@@ -1,89 +1,49 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Landing from "./pages/Landing";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import Dashboard from "./pages/Dashboard";
-import Settings from "./pages/Settings";
-import Profile from "./pages/Profile";
-import Wardrobe from "./pages/Wardrobe";
-import Laundry from "./pages/Laundry";
-import CareTips from "./pages/CareTips";
-import { AuthProvider } from "./context/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
-import AppLayout from "./layouts/AppLayout";
-import Calender from "./pages/Calender";
-import AddNewCloth from "./pages/AddNewCloth";
+// src/App.jsx
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import {
+  Landing, Login, Signup, Dashboard, Settings, Profile, Wardrobe, Laundry, Calendar, ErrorLayout,
+} from './pages';
+import { AuthProvider } from './context/Authprovider';
+import ProtectedRoute from './components/ProtectedRoute';
+import AppLayout from './layouts/AppLayout';
+import PublicLayout from './layouts/PublicLayout';
+import { useEffect } from 'react';
+import { useThemeStore } from './stores/useThemeStore';
 
 export default function App() {
+    useEffect(() => {
+    useThemeStore.getState().initializeTheme();
+  }, []);
+
   return (
     <AuthProvider>
       <Router>
         <Routes>
-          <Route element={<AppLayout />}>
+          {/* --- Public Routes --- */}
+          <Route element={<PublicLayout />}>
             <Route index element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-
-            {/* Protected */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/wardrobe"
-              element={
-                <ProtectedRoute>
-                  <Wardrobe />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/laundry"
-              element={
-                <ProtectedRoute>
-                  <Laundry />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/care"
-              element={
-                <ProtectedRoute>
-                  <CareTips />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/calender"
-              element={
-                <ProtectedRoute>
-                  <Calender />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/add"
-              element={
-                <ProtectedRoute>
-                  <AddNewCloth />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="settings" element={<Settings />} />
-            </Route>
           </Route>
+
+          {/* --- Protected Routes --- */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/wardrobe" element={<Wardrobe />} />
+            <Route path="/laundry" element={<Laundry />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/calendar" element={<Calendar />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
+
+          {/* --- Not Found Route --- */}
+          <Route path="*" element={<ErrorLayout />} />
         </Routes>
       </Router>
     </AuthProvider>

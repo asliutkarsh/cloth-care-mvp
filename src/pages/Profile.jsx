@@ -9,7 +9,6 @@ import {
   Activity,
 } from 'lucide-react';
 import AnimatedPage from '../components/AnimatedPage';
-import SettingsView from '../components/Profile/SettingsView';
 import ClothesTabContent from '../components/Profile/ClothesTabContent';
 import OutfitsTabContent from '../components/Profile/OutfitsTabContent';
 import ActivityTabContent from '../components/Profile/ActivityTabContent';
@@ -21,12 +20,14 @@ import {
   ActivityLogService,
   CategoryService,
   AnalyticsService,
-} from '../services/data';
+} from '../services';
+import { useNavigate } from 'react-router-dom';
 
 export default function Profile() {
   const [currentView, setCurrentView] = useState('profile'); // 'profile', 'settings', 'categories'
   const [activeTab, setActiveTab] = useState('clothes'); // 'clothes', 'outfits', 'activity'
   const [profileImage, setProfileImage] = useState(null);
+  const navigate = useNavigate();
   const [userData, setUserData] = useState({
     name: 'Hey User',
     email: 'user@clothcare.com',
@@ -59,9 +60,9 @@ export default function Profile() {
     }
   };
 
-  if (currentView === 'settings') {
-    return <SettingsView onBack={() => setCurrentView('profile')} />;
-  }
+  // if (currentView === 'settings') {
+  //   return <SettingsView onBack={() => setCurrentView('profile')} />;
+  // }
 
   if (currentView === 'categories') {
     return <CategoriesView onBack={() => setCurrentView('profile')} />;
@@ -75,7 +76,7 @@ export default function Profile() {
         stats={stats}
         onUploadImage={handleUploadImage}
         onGoCategories={() => setCurrentView('categories')}
-        onGoSettings={() => setCurrentView('settings')}
+        onGoSettings={() => navigate('/settings')}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
       >

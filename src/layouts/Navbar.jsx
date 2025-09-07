@@ -1,26 +1,41 @@
 import { Link, useLocation } from 'react-router-dom'
-import ThemeToggle from './ThemeToggle'
+import ThemeToggle from '../components/ThemeToggle'
 import { motion } from 'framer-motion'
-import { useAuth } from '../context/AuthContext'
+import { useAuthStore } from '../stores/useAuthStore'
 import { useState } from 'react'
-import { useNavigate } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
-import { House, CalendarDays, WashingMachine, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
+import { House, CalendarDays, WashingMachine, User, BookOpenCheck } from 'lucide-react'
 
 export default function Navbar() {
-  const { user, logout } = useAuth()
+  const { user, logout } = useAuthStore()
   const location = useLocation()
   const isLanding = location.pathname === '/'
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
 
   const navItems = [
-    { to: '/dashboard', label: 'Dashboard', icon: <House size={24} color="#e042f5" /> },
-    { to: '/calender', label: 'Calender', icon: <CalendarDays size={24} color="#12913c" /> },
-    { to: '/laundry', label: 'Laundry', icon: <WashingMachine size={24} color="#12913c" /> },
-    { to: '/profile', label: 'Profile', icon: <User size={24} color="#e042f5" /> },
-  ];
-
+    {
+      to: '/dashboard',
+      label: 'Dashboard',
+      icon: <House size={24} color="#e042f5" />,
+    },
+    {
+      to: '/wardrobe',
+      label: 'Wardrobe',
+      icon: <BookOpenCheck size={24} color="#12913c" />,
+    },
+    {
+      to: '/laundry',
+      label: 'Laundry',
+      icon: <WashingMachine size={24} color="#12913c" />,
+    },
+    {
+      to: '/profile',
+      label: 'Profile',
+      icon: <User size={24} color="#e042f5" />,
+    },
+  ]
 
   return (
     <motion.nav
@@ -48,11 +63,14 @@ export default function Navbar() {
           </Link>
 
           <motion.button
-            whileHover={{ scale: 1.02, backgroundColor: "rgba(255, 255, 255, 0.1)" }}
+            whileHover={{
+              scale: 1.02,
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            }}
             whileTap={{ scale: 0.98 }}
             onClick={() => {
-              navigate("/dashboard");
-              setOpen(false);
+              navigate('/dashboard')
+              setOpen(false)
             }}
             className="flex items-center gap-2 px-3 py-2 rounded-lg 
                  font-semibold text-white 
@@ -63,8 +81,6 @@ export default function Navbar() {
             Dashboard
             <ChevronRight className="w-4 h-4" />
           </motion.button>
-
-
         </div>
       )}
 
@@ -92,8 +108,6 @@ export default function Navbar() {
               </motion.div>
             ))}
           </div>
-
-
         </div>
       )}
 

@@ -1,9 +1,10 @@
+// src/hooks/useAlreadyLoggedInRedirect.js
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from './AuthContext'; // Adjust path if in separate file
+import { useAuthStore } from '../stores/useAuthStore';
 
 export function useAlreadyLoggedInRedirect(path = '/dashboard') {
-  const { user } = useAuth();
+  const user = useAuthStore(state => state.user);
   const navigate = useNavigate();
 
   useEffect(() => {

@@ -1,40 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { Filter, X, Shirt } from 'lucide-react';
-import Button from '../common/Button';
-import { ClothService, CategoryService, FilterService } from '../../services/data';
+import React, { useState, useEffect } from 'react'
+import { Filter, X, Shirt } from 'lucide-react'
+import Button from '../ui/Button'
+import { ClothService, CategoryService } from '../../services'
 
 export default function ClothesTabContent() {
-  const [clothes, setClothes] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [clothes, setClothes] = useState([])
+  const [categories, setCategories] = useState([])
   const [filters, setFilters] = useState({
     status: [],
     categoryIds: [],
-    searchTerm: ''
-  });
-  const [showFilters, setShowFilters] = useState(false);
+    searchTerm: '',
+  })
+  const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
-    setCategories(CategoryService.getAll());
-    applyFilters();
-  }, []);
+    setCategories(CategoryService.getAll())
+    // applyFilters()
+  }, [])
 
-  const applyFilters = () => {
-    const filteredClothes = FilterService.filterClothes(filters);
-    setClothes(filteredClothes);
-  };
+    // const applyFilters = () => {
+    //   const filteredClothes = FilterService.filterClothes(filters)
+    //   setClothes(filteredClothes)
+    // }
 
   useEffect(() => {
-    applyFilters();
-  }, [filters]);
+    // applyFilters()
+  }, [filters])
 
   const handleCategoryFilter = (categoryId) => {
-    setFilters(prev => ({ ...prev, categoryIds: [categoryId] }));
-    setShowFilters(false);
-  };
+    setFilters((prev) => ({ ...prev, categoryIds: [categoryId] }))
+    setShowFilters(false)
+  }
 
   const clearCategoryFilter = () => {
-    setFilters(prev => ({ ...prev, categoryIds: [] }));
-  };
+    setFilters((prev) => ({ ...prev, categoryIds: [] }))
+  }
 
   return (
     <div className="space-y-4">
@@ -69,7 +69,11 @@ export default function ClothesTabContent() {
             onClick={clearCategoryFilter}
             size="sm"
             variant={filters.categoryIds.length === 0 ? 'primary' : 'secondary'}
-            className={filters.categoryIds.length === 0 ? '' : 'bg-white/50 dark:bg-gray-600/50'}
+            className={
+              filters.categoryIds.length === 0
+                ? ''
+                : 'bg-white/50 dark:bg-gray-600/50'
+            }
           >
             All
           </Button>
@@ -78,8 +82,16 @@ export default function ClothesTabContent() {
               key={category.id}
               onClick={() => handleCategoryFilter(category.id)}
               size="sm"
-              variant={filters.categoryIds.includes(category.id) ? 'primary' : 'secondary'}
-              className={filters.categoryIds.includes(category.id) ? '' : 'bg-white/50 dark:bg-gray-600/50'}
+              variant={
+                filters.categoryIds.includes(category.id)
+                  ? 'primary'
+                  : 'secondary'
+              }
+              className={
+                filters.categoryIds.includes(category.id)
+                  ? ''
+                  : 'bg-white/50 dark:bg-gray-600/50'
+              }
             >
               {category.name}
             </Button>
@@ -96,14 +108,22 @@ export default function ClothesTabContent() {
           >
             <div className="aspect-square bg-gray-200 dark:bg-gray-600 rounded-lg mb-2 flex items-center justify-center">
               {cloth.image ? (
-                <img src={cloth.image} alt={cloth.name} className="w-full h-full object-cover rounded-lg" />
+                <img
+                  src={cloth.image}
+                  alt={cloth.name}
+                  className="w-full h-full object-cover rounded-lg"
+                />
               ) : (
                 <Shirt size={24} className="text-gray-400" />
               )}
             </div>
-            <div className="text-sm font-medium text-gray-900 dark:text-white truncate">{cloth.name}</div>
+            <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+              {cloth.name}
+            </div>
             <div className="flex items-center justify-between mt-1">
-              <span className="text-xs text-gray-600 dark:text-gray-400">{CategoryService.getById(cloth.categoryId)?.name}</span>
+              <span className="text-xs text-gray-600 dark:text-gray-400">
+                {CategoryService.getById(cloth.categoryId)?.name}
+              </span>
               <span
                 className={`text-xs px-2 py-1 rounded-full ${
                   cloth.status === 'clean'
@@ -125,5 +145,5 @@ export default function ClothesTabContent() {
         </div>
       )}
     </div>
-  );
+  )
 }
