@@ -45,7 +45,7 @@ export default function Dashboard() {
         {/* Quick Actions */}
         <SectionHeader title="Quick Actions" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <QuickActionLink to="/wardrobe" title="View Wardrobe" />
+          <QuickActionLink to="/calendar" title="View Calendar" />
           <QuickActionLink to="/laundry" title="Go to Laundry" />
           <QuickActionLink to="/profile" title="My Profile" />
         </div>

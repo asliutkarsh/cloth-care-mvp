@@ -98,6 +98,24 @@ export const ClothService = {
     });
   },
 
+  /**
+   * Decrements the wear count of a cloth item.
+   */
+  async decrementWearCount(clothId) {
+    const cloth = await this.getById(clothId);
+    if (!cloth) return null;
+
+    const newWearCount = Math.max(0, cloth.currentWearCount - 1); // Prevent going below zero
+    const newStatus = newWearCount < await CategoryService.getMaxWearCount(cloth.categoryId)
+      ? this.STATUSES.CLEAN
+      : this.STATUSES.DIRTY;
+
+    return this.update(clothId, {
+      currentWearCount: newWearCount,
+      status: newStatus, // Status might change back to 'clean'
+    });
+  },
+
   // --- HELPER GETTERS ---
 
   async getByStatus(status) {

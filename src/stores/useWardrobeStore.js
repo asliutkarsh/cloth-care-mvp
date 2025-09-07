@@ -60,4 +60,11 @@ export const useWardrobeStore = create((set, get) => ({
     await LaundryService.pressClothes(clothIds);
     get().fetchAll();
   },
+
+    createOutfit: async (outfitData) => {
+    await OutfitService.add(outfitData);
+    // Refresh the main wardrobe data after creating a new outfit
+    get().fetchAll(); 
+  },
+
 }));

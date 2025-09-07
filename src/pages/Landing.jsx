@@ -229,52 +229,41 @@ const CalendarDay = ({ date, month, year, wornDays = [], laundryDays = [] }) => 
   let bgColor = "bg-gray-50 dark:bg-gray-800";
   let textColor = "";
   let emoji = <span>{date}</span>;
-  let tooltipText = "";
 
   if (isWorn && isLaundry) {
     bgColor = "bg-purple-500 shadow-purple-500/30";
     textColor = "text-white font-bold";
-    tooltipText = "Outfit Worn & Laundry Done";
     emoji = (
       <div className="flex gap-1 items-center text-white">
-        <span title="Outfit Worn">👕</span>
-        <span title="Laundry Done">🧺</span>
+        <span>👕</span>
+        <span>🧺</span>
       </div>
     );
   } else if (isWorn) {
     bgColor = "bg-blue-500 shadow-blue-500/30";
     textColor = "text-white font-bold";
-    tooltipText = "Outfit Worn";
-    emoji = <span title="Outfit Worn" className="text-white">👕</span>;
+    emoji = <span className="text-white">👕</span>;
   } else if (isLaundry) {
     bgColor = "bg-emerald-500 shadow-emerald-500/30";
     textColor = "text-white font-bold";
-    tooltipText = "Laundry Done";
-    emoji = <span title="Laundry Done" className="text-white">🧺</span>;
+    emoji = <span className="text-white">🧺</span>;
   }
 
   return (
     <motion.div
-      className="relative h-12 w-full flex items-center justify-center rounded-lg cursor-pointer group"
       whileHover={{ scale: 1.05 }}
+      className="relative w-full h-12 flex items-center justify-center rounded-lg"
     >
-      {/* Tooltip */}
-      {tooltipText && (
-        <span className="absolute bottom-full mb-1 px-2 py-1 text-xs text-white bg-black rounded opacity-0 group-hover:opacity-100 transition pointer-events-none z-20">
-          {tooltipText}
-        </span>
-      )}
-
+      {/* Background */}
+      <div
+        className={`absolute inset-0 z-0 rounded-lg border border-gray-200/20 dark:border-gray-700/40 ${bgColor} ${textColor}`}
+      />
       {/* Emoji */}
       <span className="z-10">{emoji}</span>
-
-      {/* Background box */}
-      <motion.div
-        className={`absolute z-0 w-full h-full rounded-lg border border-gray-200/20 dark:border-gray-700/40 ${bgColor} ${textColor}`}
-      />
     </motion.div>
   );
 };
+
 
 
 // --- Main Landing Page ---

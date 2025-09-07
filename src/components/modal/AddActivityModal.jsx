@@ -1,237 +1,117 @@
-import React, { useMemo, useState, useEffect } from 'react'
-import Modal from '../ui/Modal'
-import Button from '../ui/Button'
-import Input from '../ui/Input'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/Tabs'
-import { Layers, Shirt } from 'lucide-react'
+import React, { useState, useEffect, useMemo } from 'react';
+import { useWardrobeStore } from '../../stores/useWardrobeStore';
+import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import Input from '../ui/Input';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/Tabs';
 
-/**
- * AddActivityModal
- * Props:
- * - open: boolean
- * - onClose: () => void
- * - date: Date
- * - outfits: Array<{ id: string, name: string, items: string[] }>
- * - clothes: Array<{ id: string, name: string, category?: string, status?: string }>
- * - onSubmit: (payload: { type: 'outfit' | 'cloth', name: string, items: string[], date?: Date }) => void
- */
-export default function AddActivityModal({
-  open,
-  onClose,
-  date,
-  outfits = [],
-  clothes = [],
-  onSubmit,
-}) {
-  const [tab, setTab] = useState('outfits')
-  const [selectedOutfit, setSelectedOutfit] = useState('')
-  const [selectedClothes, setSelectedClothes] = useState([])
-  const [saveAsOutfit, setSaveAsOutfit] = useState(false)
-  const [outfitName, setOutfitName] = useState('')
-  const [activityDate, setActivityDate] = useState(date || new Date())
+export default function AddActivityModal({ open, onClose, date, outfits, clothes, categories, onSubmit }) {
+  const { createOutfit } = useWardrobeStore();
+  const [activeTab, setActiveTab] = useState('outfits');
+  const [selectedOutfitId, setSelectedOutfitId] = useState(null);
+  const [selectedClothIds, setSelectedClothIds] = useState([]);
+  const [activityDate, setActivityDate] = useState(date);
+  const [saveAsOutfit, setSaveAsOutfit] = useState(false);
+  const [newOutfitName, setNewOutfitName] = useState('');
 
   useEffect(() => {
-    // keep local date in sync when prop changes
-    if (date && !isNaN(date.getTime())) setActivityDate(date)
-  }, [date])
-
-  const formatDateInputValue = (d) => {
-    try {
-      return d instanceof Date && !isNaN(d) ? d.toISOString().split('T')[0] : ''
-    } catch {
-      return ''
+    if (open) {
+      setActivityDate(date);
+      setActiveTab('outfits');
+      setSelectedOutfitId(null);
+      setSelectedClothIds([]);
+      setSaveAsOutfit(false);
+      setNewOutfitName('');
     }
-  }
+  }, [open, date]);
 
-  const parseDateFromInput = (val) => {
-    // val is YYYY-MM-DD
-    if (!val) return new Date()
-    const parts = val.split('-').map((n) => parseInt(n, 10))
-    if (parts.length === 3) {
-      // Construct date in local time to avoid TZ shifting
-      const [y, m, day] = parts
-      return new Date(y, m - 1, day)
+  const groupedClothes = useMemo(() => {
+    if (!categories || !clothes) return [];
+    return categories.map(category => ({
+      ...category,
+      clothes: clothes.filter(cloth => cloth.categoryId === category.id)
+    })).filter(group => group.clothes.length > 0);
+  }, [clothes, categories]);
+
+  const handleClothToggle = (clothId) => {
+    setSelectedClothIds((prev) =>
+      prev.includes(clothId) ? prev.filter((id) => id !== clothId) : [...prev, clothId]
+    );
+  };
+
+  const handleDateChange = (e) => {
+    const [year, month, day] = e.target.value.split('-').map(p => parseInt(p, 10));
+    setActivityDate(new Date(year, month - 1, day));
+  };
+  
+  const handleSubmit = async () => {
+    let payload = null;
+    if (activeTab === 'outfits' && selectedOutfitId) {
+      payload = { type: 'outfit', outfitId: selectedOutfitId };
+    } else if (activeTab === 'clothes' && selectedClothIds.length > 0) {
+      if (saveAsOutfit && newOutfitName) {
+        const newOutfit = await createOutfit({ name: newOutfitName, clothIds: selectedClothIds });
+        payload = { type: 'outfit', outfitId: newOutfit.id };
+      } else {
+        payload = { type: 'individual', clothIds: selectedClothIds };
+      }
     }
-    const d = new Date(val)
-    return isNaN(d) ? new Date() : d
-  }
-
-  const cleanClothes = useMemo(
-    () => clothes.filter((c) => (c.status ?? 'clean') === 'clean'),
-    [clothes]
-  )
-
-  const toggleCloth = (id) => {
-    setSelectedClothes((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    )
-  }
-
-  const handleSubmit = () => {
-    if (tab === 'outfits' && selectedOutfit) {
-      const outfit = outfits.find((o) => o.id === selectedOutfit)
-      if (!outfit) return
-      onSubmit?.({
-        type: 'outfit',
-        name: outfit.name,
-        items: outfit.items,
-        date: activityDate,
-      })
-      onClose?.()
-      return
+    if (payload) {
+      onSubmit(payload);
     }
+  };
 
-    if (tab === 'clothes' && selectedClothes.length > 0) {
-      const items = selectedClothes
-        .map((id) => clothes.find((c) => c.id === id)?.name)
-        .filter(Boolean)
-
-      const isSingle = selectedClothes.length === 1
-      const name = isSingle ? items[0] : outfitName || 'Custom Outfit'
-      // Optionally handle saveAsOutfit externally if needed
-      onSubmit?.({
-        type: isSingle ? 'cloth' : 'outfit',
-        name,
-        items,
-        date: activityDate,
-      })
-      onClose?.()
-    }
-  }
+  const isSubmitDisabled = 
+    (activeTab === 'outfits' && !selectedOutfitId) ||
+    (activeTab === 'clothes' && selectedClothIds.length === 0) ||
+    (activeTab === 'clothes' && saveAsOutfit && !newOutfitName);
 
   return (
-    <Modal open={open} onClose={onClose}>
-      <div className="w-full max-w-md flex flex-col">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Log Activity
-          </h2>
-          {/* Close button */}
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              onClick={onClose}
-              variant="secondary"
-              className="w-full sm:w-auto mr-2"
-            >
-              <span className="sr-only">Cancel</span>
-              <svg
-                className="h-5 w-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M6 18L18 6M6 6L18 18"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </Button>
-          </div>
+    <Modal open={open} onClose={onClose} title="Log Activity">
+      <div className="w-full max-w-md md:min-w-[480px] flex flex-col">
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+          <Input type="date" value={activityDate.toISOString().split('T')[0]} onChange={handleDateChange} />
         </div>
 
-        {/* Date selector */}
-        <div className="mb-3">
-          <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
-            Date
-          </label>
-          <Input
-            type="date"
-            value={formatDateInputValue(activityDate)}
-            onChange={(e) =>
-              setActivityDate(parseDateFromInput(e.target.value))
-            }
-          />
-          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Selected: {activityDate?.toLocaleDateString?.() || ''}
-          </div>
-        </div>
-
-        <Tabs value={tab} onValueChange={setTab}>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="outfits">Saved Outfits</TabsTrigger>
             <TabsTrigger value="clothes">Individual Items</TabsTrigger>
           </TabsList>
-
-          <div className="mt-3 max-h-96 overflow-y-auto">
+          <div className="mt-4 max-h-80 overflow-y-auto p-1">
             <TabsContent value="outfits">
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {outfits.map((outfit) => (
-                  <button
-                    key={outfit.id}
-                    onClick={() => setSelectedOutfit(outfit.id)}
-                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                      selectedOutfit === outfit.id
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                        <Layers size={16} className="text-white" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {outfit.name}
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          {outfit.items.join(', ')}
-                        </div>
-                      </div>
-                    </div>
+                  <button key={outfit.id} onClick={() => setSelectedOutfitId(outfit.id)} className={`w-full text-left p-3 rounded-lg border transition-colors ${selectedOutfitId === outfit.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
+                    <p className="font-medium">{outfit.name}</p>
                   </button>
                 ))}
               </div>
             </TabsContent>
-
             <TabsContent value="clothes">
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-2">
-                  {cleanClothes.map((cloth) => (
-                    <button
-                      key={cloth.id}
-                      onClick={() => toggleCloth(cloth.id)}
-                      className={`p-3 rounded-lg border transition-colors ${
-                        selectedClothes.includes(cloth.id)
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                      }`}
-                    >
-                      <div className="aspect-square bg-gray-200 dark:bg-gray-600 rounded-lg mb-2 flex items-center justify-center">
-                        <Shirt size={20} className="text-gray-400" />
-                      </div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                        {cloth.name}
-                      </div>
-                      {cloth.category && (
-                        <div className="text-xs text-gray-600 dark:text-gray-400">
-                          {cloth.category}
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-
-                {selectedClothes.length > 1 && (
-                  <div className="space-y-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                      <input
-                        type="checkbox"
-                        checked={saveAsOutfit}
-                        onChange={(e) => setSaveAsOutfit(e.target.checked)}
-                        className="w-4 h-4"
-                      />
+                {groupedClothes.length > 0 ? groupedClothes.map(group => (
+                  <div key={group.id}>
+                    <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 px-1">{group.name}</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      {group.clothes.map(cloth => (
+                        <button key={cloth.id} onClick={() => handleClothToggle(cloth.id)} className={`p-2 rounded-lg border text-center transition-colors ${selectedClothIds.includes(cloth.id) ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
+                          <div className="text-xs font-medium truncate">{cloth.name}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )) : <p className="text-sm text-gray-500 text-center py-4">No clean clothes available.</p>}
+                
+                {selectedClothIds.length > 1 && (
+                  <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer p-1">
+                      <input type="checkbox" checked={saveAsOutfit} onChange={(e) => setSaveAsOutfit(e.target.checked)} />
                       Save as new outfit
                     </label>
-
                     {saveAsOutfit && (
-                      <Input
-                        value={outfitName}
-                        onChange={(e) => setOutfitName(e.target.value)}
-                        placeholder="Enter outfit name"
-                      />
+                      <Input placeholder="New outfit name..." value={newOutfitName} onChange={(e) => setNewOutfitName(e.target.value)} />
                     )}
                   </div>
                 )}
@@ -240,19 +120,12 @@ export default function AddActivityModal({
           </div>
         </Tabs>
 
-        <div className="mt-4">
-          <Button
-            onClick={handleSubmit}
-            disabled={
-              (tab === 'outfits' && !selectedOutfit) ||
-              (tab === 'clothes' && selectedClothes.length === 0)
-            }
-            className="w-full"
-          >
+        <div className="mt-6">
+          <Button onClick={handleSubmit} disabled={isSubmitDisabled} fullWidth>
             Log Activity
           </Button>
         </div>
       </div>
     </Modal>
-  )
+  );
 }
