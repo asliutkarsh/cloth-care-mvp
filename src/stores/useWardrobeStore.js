@@ -67,4 +67,46 @@ export const useWardrobeStore = create((set, get) => ({
     get().fetchAll(); 
   },
 
+    // --- CATEGORY ACTIONS ---
+
+  /**
+   * Adds a new top-level category.
+   */
+  addCategory: async (categoryData) => {
+    await CategoryService.addCategory(categoryData);
+    await get().fetchAll(); // Refresh all data to reflect changes
+  },
+
+  /**
+   * Adds a new subcategory under a parent.
+   */
+  addSubCategory: async (parentId, categoryData) => {
+    await CategoryService.addSubCategory(parentId, categoryData);
+    await get().fetchAll();
+  },
+
+  /**
+   * Updates an existing category.
+   */
+  updateCategory: async (categoryId, updates) => {
+    await CategoryService.update(categoryId, updates);
+    await get().fetchAll();
+  },
+
+  /**
+   * Removes a category.
+   * Note: The service will throw an error if the category has children.
+   */
+  removeCategory: async (categoryId) => {
+    try {
+      await CategoryService.remove(categoryId);
+      await get().fetchAll();
+    } catch (error) {
+      // It's good practice to alert the user if the delete fails (e.g., category not empty)
+      alert(error.message);
+      console.error("Failed to remove category:", error);
+    }
+  },
+
+
 }));

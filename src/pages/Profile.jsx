@@ -13,7 +13,6 @@ import ClothesTabContent from '../components/Profile/ClothesTabContent';
 import OutfitsTabContent from '../components/Profile/OutfitsTabContent';
 import ActivityTabContent from '../components/Profile/ActivityTabContent';
 import ProfileMainView from '../components/Profile/ProfileMainView';
-import CategoriesView from '../components/Profile/CategoriesView';
 import {
   ClothService,
   OutfitService,
@@ -59,14 +58,6 @@ export default function Profile() {
         return <ClothesTabContent />;
     }
   };
-
-  // if (currentView === 'settings') {
-  //   return <SettingsView onBack={() => setCurrentView('profile')} />;
-  // }
-
-  if (currentView === 'categories') {
-    return <CategoriesView onBack={() => setCurrentView('profile')} />;
-  }
 
   return (
     <AnimatedPage>
