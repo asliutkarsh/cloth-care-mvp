@@ -1,118 +1,122 @@
-import { useState, useEffect } from 'react'
-import ClothCard from '../components/ClothCard'
-import AddClothModal from '../components/modal/AddClothModal'
-import AnimatedPage from '../components/AnimatedPage'
-import { ClothService, CategoryService } from '../services'
-import SectionHeader from '../components/ui/SectionHeader'
-import Button from '../components/ui/Button'
+import React, { useState, useMemo } from 'react'
+import { useWardrobeStore } from '../stores/useWardrobeStore'
+import { Search, SlidersHorizontal } from 'lucide-react'
+import {
+  Input,
+  Button,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from '../components/ui'
+import ClothList from '../components/wardrobe/ClothList'
+import OutfitList from '../components/wardrobe/OutfitList' // 1. Import the new component
+import FilterPanel from '../components/wardrobe/FilterPanel'
 
 export default function Wardrobe() {
-  const [clothes, setClothes] = useState([])
-  const [openAdd, setOpenAdd] = useState(false)
-  const [categories, setCategories] = useState([])
-  const [filters, setFilters] = useState({
-    status: [],
-    categoryIds: [],
-    searchTerm: '',
-  })
+  const {
+    clothes = [],
+    outfits = [],
+    categories = [],
+    isInitialized,
+  } = useWardrobeStore()
+  const [activeTab, setActiveTab] = useState('clothes')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filters, setFilters] = useState({ status: [], categoryId: null })
+  const [isFilterPanelOpen, setFilterPanelOpen] = useState(false)
 
-  useEffect(() => {
-    setCategories(CategoryService.getAll())
-    // applyFilters()
-  }, [])
+  // 2. Filtered clothes logic
+  const filteredClothes = useMemo(() => {
+    return clothes.filter((cloth) => {
+      const searchMatch = cloth.name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+      const statusMatch =
+        filters.status.length === 0 || filters.status.includes(cloth.status)
+      const categoryMatch =
+        !filters.categoryId || cloth.categoryId === filters.categoryId
+      return searchMatch && statusMatch && categoryMatch
+    })
+  }, [clothes, searchTerm, filters])
 
-  // const applyFilters = () => {
-  //   const filteredClothes = FilterService.filterClothes(filters)
-  //   setClothes(filteredClothes)
-  // }
+  // 3. Filtered outfits logic
+  const filteredOutfits = useMemo(() => {
+    return outfits.filter((outfit) =>
+      outfit.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }, [outfits, searchTerm])
 
-  useEffect(() => {
-    // applyFilters()
-  }, [filters])
-
-  const addCloth = (cloth) => {
-    ClothService.create(cloth)
-    // applyFilters() // Re-fetch and apply filters
-  }
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target
-    setFilters((prev) => ({ ...prev, [name]: value }))
+  if (!isInitialized) {
+    return (
+      <div className="p-8 text-center text-gray-500">Loading wardrobe...</div>
+    )
   }
 
   return (
-    <AnimatedPage>
-      <div className="p-4 sm:p-6">
-        <div className="flex items-center justify-between mb-4">
-          <SectionHeader title="Your Wardrobe" />
-          <Button onClick={() => setOpenAdd(true)}>Add Item</Button>
-        </div>
+    <div className="flex">
+      <main className="flex-grow max-w-7xl mx-auto p-4 pb-24 sm:p-6 md:p-8">
+        <header className="mb-6">
+          <h1 className="text-3xl font-bold mb-2">My Wardrobe</h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Browse, search, and manage your clothes and outfits.
+          </p>
+        </header>
 
-        {/* Filter Section */}
-        <div className="mb-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input
-              type="text"
-              name="searchTerm"
-              placeholder="Search..."
-              value={filters.searchTerm}
-              onChange={handleFilterChange}
-              className="p-2 rounded border dark:bg-gray-700 dark:border-gray-600"
-            />
-            <select
-              name="status"
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, status: [e.target.value] }))
-              }
-              className="p-2 rounded border dark:bg-gray-700 dark:border-gray-600"
-            >
-              <option value="">All Statuses</option>
-              <option value="clean">Clean</option>
-              <option value="dirty">Dirty</option>
-              <option value="needs_pressing">Needs Pressing</option>
-            </select>
-            <select
-              name="categoryIds"
-              onChange={(e) =>
-                setFilters((prev) => ({
-                  ...prev,
-                  categoryIds: [e.target.value],
-                }))
-              }
-              className="p-2 rounded border dark:bg-gray-700 dark:border-gray-600"
-            >
-              <option value="">All Categories</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <div className="flex flex-col sm:flex-row gap-4 mb-4">
+            <TabsList>
+              <TabsTrigger value="clothes">
+                Clothes ({clothes?.length})
+              </TabsTrigger>
+              <TabsTrigger value="outfits">
+                Outfits ({outfits?.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="relative flex-grow">
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <Input
+                placeholder={`Search in ${activeTab}...`} // 4. Dynamic placeholder
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            {activeTab === 'clothes' && (
+              <Button
+                variant="secondary"
+                className="flex items-center gap-2"
+                onClick={() => setFilterPanelOpen(true)}
+              >
+                <SlidersHorizontal size={16} />
+                Filters
+              </Button>
+            )}
           </div>
-        </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {clothes.map((cloth) => (
-            <ClothCard key={cloth.id} cloth={cloth} />
-          ))}
-        </div>
-        {clothes.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400">
-              No clothes found. Add one to get started!
-            </p>
-          </div>
-        )}
-      </div>
+          <TabsContent value="clothes">
+            <ClothList clothes={filteredClothes} />
+          </TabsContent>
 
-      <AddClothModal
-        open={openAdd}
-        onClose={() => setOpenAdd(false)}
-        onAdd={(item) => {
-          addCloth(item)
-          setOpenAdd(false)
-        }}
+          <TabsContent value="outfits">
+            <OutfitList outfits={filteredOutfits} /> {/* 5. Use OutfitList */}
+          </TabsContent>
+        </Tabs>
+      </main>
+
+      {/* Filter Side Panel for clothes */}
+      <FilterPanel
+        isOpen={isFilterPanelOpen}
+        onClose={() => setFilterPanelOpen(false)}
+        clothes={clothes}
+        categories={categories}
+        currentFilters={filters}
+        onFilterChange={setFilters}
       />
-    </AnimatedPage>
+    </div>
   )
 }

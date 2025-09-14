@@ -5,7 +5,14 @@ import { useAuthStore } from '../stores/useAuthStore'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
-import { House, CalendarDays, WashingMachine, User, BookOpenCheck } from 'lucide-react'
+import {
+  House,
+  CalendarDays,
+  WashingMachine,
+  User,
+  BookOpenCheck,
+} from 'lucide-react'
+import FabMenu from '../components/ui/FabMenu'
 
 export default function Navbar() {
   const { user, logout } = useAuthStore()
@@ -84,6 +91,7 @@ export default function Navbar() {
         </div>
       )}
 
+      {/* if user is logged in and not Landing page and desktop */}
       {/* if user is logged in and not Landing page and desktop */}
       {user && !isLanding && (
         <div className="container hidden sm:flex items-center justify-between mx-auto px-4 sm:px-0 lg:px-6">

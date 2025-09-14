@@ -1,82 +1,137 @@
-import React, { useState, useEffect } from 'react'
-import AnimatedPage from '../components/AnimatedPage'
-import { Link } from 'react-router-dom'
-import { AnalyticsService , SetupService} from '../services'
-import { Card } from '../components/ui/Card'
-import SectionHeader from '../components/ui/SectionHeader'
+import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/useAuthStore';
+import { useWardrobeStore } from '../stores/useWardrobeStore';
+import { useLaundryStore } from '../stores/useLaundryStore';
+import { useCalendarStore } from '../stores/useCalendarStore';
+import { Button } from '../components/ui';
+import { PlusCircle, BookPlus, Shirt, Layers, WashingMachine } from 'lucide-react';
+import { motion } from 'framer-motion';
+
+// Reusable Stat Card for displaying key metrics
+const StatCard = ({ icon, value, label, onClick }) => (
+  <motion.button
+    onClick={onClick}
+    className="glass-card p-4 text-center w-full"
+    whileHover={{ scale: 1.05 }}
+    transition={{ type: 'spring', stiffness: 300 }}
+  >
+    <div className="w-10 h-10 mx-auto bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-2">
+      {icon}
+    </div>
+    <p className="text-2xl font-bold">{value}</p>
+    <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
+  </motion.button>
+);
+
+// Component to display a single recent activity
+const ActivityItem = ({ activity, details }) => (
+  <div className="flex items-center gap-3 p-3 bg-gray-50/50 dark:bg-gray-700/50 rounded-lg">
+    <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
+      activity.type === 'outfit' 
+        ? 'bg-blue-200 dark:bg-blue-800' 
+        : 'bg-green-200 dark:bg-green-800'
+    }`}>
+      {activity.type === 'outfit' 
+        ? <Layers size={16} className="text-blue-600 dark:text-blue-400" /> 
+        : <Shirt size={16} className="text-green-600 dark:text-green-400" />}
+    </div>
+    <div>
+      <p className="font-medium text-sm">{details.name}</p>
+      <p className="text-xs text-gray-500">
+        {new Date(activity.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+      </p>
+    </div>
+  </div>
+);
 
 export default function Dashboard() {
-  const [stats, setStats] = useState(null)
+  const navigate = useNavigate();
+  const user = useAuthStore(state => state.user);
+  const { clothes, outfits, isInitialized: isWardrobeReady } = useWardrobeStore();
+  const { dirtyClothes, needsPressing } = useLaundryStore();
+  const { activities, getActivityDetails } = useCalendarStore();
 
-  useEffect(() => {
-    // Initialize the app which creates default categories if none exist
-    SetupService.initialize();
+  const recentActivities = useMemo(() => {
+    return Object.values(activities)
+      .flat()
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 5);
+  }, [activities]);
 
-    // Fetch wardrobe stats
-    const wardrobeStats = AnalyticsService.getWardrobeStats()
-    setStats(wardrobeStats)
-  }, [])
+  const cleanClothesCount = clothes.filter(c => c.status === 'clean')?.length || 0;
+  const inLaundryCount = (dirtyClothes?.length || 0) + (needsPressing?.length || 0);
 
-  if (!stats) {
-    return <div>Loading...</div> // Or a proper loading spinner
+  if (!isWardrobeReady || !user) {
+    return <div>Loading dashboard...</div>; // Optionally replace with a proper skeleton loader
   }
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
   return (
-    <AnimatedPage>
-      <div className="p-6 dark:text-white">
-        <SectionHeader title="Dashboard" />
+    <main className="max-w-7xl mx-auto p-4 pb-24 sm:p-6 md:p-8">
+      {/* Header */}
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold">{getGreeting()}, {user.name || 'User'}!</h1>
+        <p className="text-gray-600 dark:text-gray-400">Here's a quick look at your wardrobe today.</p>
+      </header>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <StatCard title="Total Clothes" value={stats.totalClothes} />
-          <StatCard title="Total Outfits" value={stats.totalOutfits} />
-          <StatCard
-            title="Clean"
-            value={stats.cleanClothes}
-            color="text-green-500"
-          />
-          <StatCard
-            title="Dirty"
-            value={stats.dirtyClothes}
-            color="text-red-500"
-          />
-        </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <StatCard 
+          icon={<Shirt size={20} className="text-emerald-600" />} 
+          value={cleanClothesCount} 
+          label="Clean Clothes" 
+          onClick={() => navigate('/wardrobe')}
+        />
+        <StatCard 
+          icon={<WashingMachine size={20} className="text-emerald-600" />} 
+          value={inLaundryCount} 
+          label="In Laundry" 
+          onClick={() => navigate('/laundry')}
+        />
+        <StatCard 
+          icon={<Layers size={20} className="text-emerald-600" />} 
+          value={outfits?.length || 0} 
+          label="Outfits" 
+          onClick={() => navigate('/wardrobe', { state: { defaultTab: 'outfits' } })}
+        />
+      </div>
 
+      {/* Quick Actions & Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Quick Actions */}
-        <SectionHeader title="Quick Actions" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <QuickActionLink to="/calendar" title="View Calendar" />
-          <QuickActionLink to="/laundry" title="Go to Laundry" />
-          <QuickActionLink to="/profile" title="My Profile" />
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold">Quick Actions</h2>
+          <Button fullWidth size="lg" onClick={() => navigate('/calendar?openAdd=1')}>
+            <BookPlus className="mr-2" /> Log Today's Wear
+          </Button>
+          <Button fullWidth size="lg" variant="secondary" onClick={() => navigate('/wardrobe')}>
+            <PlusCircle className="mr-2" /> Add a New Cloth
+          </Button>
         </div>
 
-        {/* Recently Added */}
-        <SectionHeader title="Recently Added" />
-        {/* Placeholder for recently added clothes */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          <p className="dark:text-white">No clothes added yet</p>
+        {/* Recent Activity */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold">Recent Activity</h2>
+          {recentActivities?.length > 0 ? (
+            <div className="glass-card p-4 space-y-3">
+              {recentActivities.map(act => (
+                <ActivityItem key={act.id} activity={act} details={getActivityDetails(act)} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500 glass-card">
+              <p>No recent activity logged.</p>
+            </div>
+          )}
         </div>
       </div>
-    </AnimatedPage>
-  )
+    </main>
+  );
 }
-
-// Helper components for styling
-
-const StatCard = ({ title, value, color = 'dark:text-white' }) => (
-  <Card className="text-center">
-    <h4 className="text-lg font-semibold text-gray-600 dark:text-gray-300">
-      {title}
-    </h4>
-    <p className={`text-4xl font-bold ${color}`}>{value}</p>
-  </Card>
-)
-
-const QuickActionLink = ({ to, title }) => (
-  <Link
-    to={to}
-    className="block p-6 bg-white dark:bg-gray-800 rounded-xl shadow hover:scale-105 transition text-center"
-  >
-    <h4 className="text-xl font-semibold">{title}</h4>
-  </Link>
-)

@@ -39,6 +39,23 @@ export const useWardrobeStore = create((set, get) => ({
   },
 
   /**
+   * Updates an existing cloth item.
+   */
+  updateCloth: async (clothId, updates) => {
+    await ClothService.update(clothId, updates)
+    await get().fetchAll() // Refresh all data to ensure UI is in sync
+  },
+
+  /**
+   * Deletes a cloth item.
+   */
+  removeCloth: async (clothId) => {
+    // You'll likely need this on the detail page too
+    await ClothService.remove(clothId)
+    await get().fetchAll()
+  },
+
+  /**
    * Logs that an outfit was worn and refreshes the state.
    */
   wearOutfit: async (outfitId) => {
@@ -113,4 +130,22 @@ export const useWardrobeStore = create((set, get) => ({
     if (!isInitialized || !clothes?.length) return null
     return AnalyticsService.getMostUsedClothes(clothes, 1)[0] || null
   },
+
+
+  /**
+   * Updates an existing outfit.
+   */
+  updateOutfit: async (outfitId, updates) => {
+    await OutfitService.update(outfitId, updates);
+    await get().fetchAll(); // Refresh all data
+  },
+
+  /**
+   * Removes an outfit.
+   */
+  removeOutfit: async (outfitId) => {
+    await OutfitService.remove(outfitId);
+    await get().fetchAll();
+  },
+
 }))
