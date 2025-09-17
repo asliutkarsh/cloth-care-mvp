@@ -15,7 +15,7 @@ import {
   ClothDetailPage,
   OutfitDetailPage,
 } from './pages'
-import { AuthProvider } from './context/Authprovider'
+import { AuthProvider } from './context/AuthProvider'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppLayout from './layouts/AppLayout'
 import PublicLayout from './layouts/PublicLayout'
