@@ -1,5 +1,6 @@
 // src/components/SplashScreen.jsx
 import { motion } from 'framer-motion';
+import Logo from './Logo';
 
 export default function SplashScreen() {
   return (
@@ -15,10 +16,9 @@ export default function SplashScreen() {
           repeat: Infinity,
         }}
       >
-        {/* We can reuse the logo style from your Navbar */}
-        <h1 className="font-bold text-4xl logo-gradient">
-          ClothCare
-        </h1>
+        <div className="text-5xl">
+          <Logo />
+        </div>
       </motion.div>
     </div>
   );

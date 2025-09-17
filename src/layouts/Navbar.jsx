@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/useAuthStore'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
+import Logo from '../components/ui/Logo'
 import {
   House,
   CalendarDays,
@@ -54,8 +55,8 @@ export default function Navbar() {
       {/* if user is not logged in */}
       {!user && (
         <div className="container flex items-center justify-between sm:justify-around mx-auto px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="font-bold text-xl logo-gradient">
-            ClothCare
+          <Link to="/" className="flex items-center">
+            <Logo />
           </Link>
 
           <ThemeToggle />
@@ -65,8 +66,8 @@ export default function Navbar() {
       {/* if user is logged in and landing page */}
       {user && isLanding && (
         <div className="container flex items-center justify-between sm:justify-around mx-auto px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="font-bold text-xl logo-gradient">
-            ClothCare
+          <Link to="/" className="flex items-center">
+            <Logo />
           </Link>
 
           <motion.button
@@ -92,11 +93,10 @@ export default function Navbar() {
       )}
 
       {/* if user is logged in and not Landing page and desktop */}
-      {/* if user is logged in and not Landing page and desktop */}
       {user && !isLanding && (
         <div className="container hidden sm:flex items-center justify-between mx-auto px-4 sm:px-0 lg:px-6">
-          <Link to="/" className="font-bold text-xl logo-gradient">
-            ClothCare
+          <Link to="/" className="flex items-center">
+            <Logo />
           </Link>
           <div className="flex justify-end items-center gap-3">
             {navItems.map((item, idx) => (
@@ -122,8 +122,8 @@ export default function Navbar() {
       {/* if user is logged in and not Landing page and mobile */}
       {user && !isLanding && (
         <div className="container flex items-center justify-between sm:justify-around mx-auto px-4 sm:px-6 lg:px-8 md:hidden">
-          <Link to="/" className="font-bold text-xl logo-gradient">
-            ClothCare
+          <Link to="/" className="flex items-center">
+            <Logo />
           </Link>
         </div>
       )}
