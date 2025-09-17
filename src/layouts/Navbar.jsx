@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import Logo from '../components/ui/Logo'
+import { useThemeStore } from '../stores/useThemeStore'
 import {
   House,
   CalendarDays,
@@ -17,6 +18,7 @@ import FabMenu from '../components/ui/FabMenu'
 
 export default function Navbar() {
   const { user, logout } = useAuthStore()
+  const theme = useThemeStore((state) => state.theme)
   const location = useLocation()
   const isLanding = location.pathname === '/'
   const [open, setOpen] = useState(false)
@@ -50,8 +52,21 @@ export default function Navbar() {
       initial={{ y: -10, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className="sticky top-0 z-20 p-3 md:p-4 backdrop-blur supports-[backdrop-filter]:bg-transparent dark:supports-[backdrop-filter]:bg-transparent border-b border-white/20"
+      className="sticky top-0 z-20 p-3 md:p-4 backdrop-blur border-b border-white/20 dark:border-gray-700/40"
+      style={{
+        background: theme === 'dark' && isLanding
+          ? 'radial-gradient(ellipse 50% 60% at 50% 80%, rgba(16,185,129,0.25), transparent 100%), rgba(0,0,0,0.25)' 
+          : theme === 'dark' && !isLanding
+          ? 'radial-gradient(ellipse 50% 60% at 50% 80%, rgba(16,185,129,0.25), transparent 100%), rgba(0,0,0,0.25)' 
+          : theme === 'light' && isLanding
+          ? 'radial-gradient(125% 125% at 50% 10%, #ffffff 40%, #10b981 100%)' 
+          : theme === 'light' && !isLanding
+          ? 'radial-gradient(125% 125% at 50% 90%, #ffffff 40%, #10b981 100%)' 
+          : 'radial-gradient(125% 125% at 50% 10%, #ffffff 40%, #10b981 100%)' 
+      }}
     >
+
+
       {/* if user is not logged in */}
       {!user && (
         <div className="container flex items-center justify-between sm:justify-around mx-auto px-4 sm:px-6 lg:px-8">

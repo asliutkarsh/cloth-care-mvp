@@ -283,7 +283,7 @@ export default function Landing() {
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              'radial-gradient(ellipse 80% 60% at 50% 20%, rgba(16,185,129,0.25), transparent 70%)',
+              'radial-gradient(125% 125% at 50% 90%, #ffffff 40%, #10b981 100%)',
           }}
         />
         <div className="relative max-w-3xl mx-auto">
