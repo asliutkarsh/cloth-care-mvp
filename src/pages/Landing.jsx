@@ -1,7 +1,7 @@
 import AnimatedPage from '../components/AnimatedPage'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState , useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   FAQ,
   Footer,
@@ -282,8 +282,7 @@ export default function Landing() {
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background:
-              'radial-gradient(125% 125% at 50% 90%, #ffffff 40%, #10b981 100%)',
+            background: isDark ? "radial-gradient(ellipse 80% 60% at 50% 20%, rgba(16,185,129,0.25), transparent 70%)" : "radial-gradient(125% 125% at 50% 20%, #ffffff 40%, #a6d5cd 100%)",
           }}
         />
         <div className="relative max-w-3xl mx-auto">

@@ -1,147 +1,89 @@
-import { Link, useLocation } from 'react-router-dom'
-import ThemeToggle from '../components/ThemeToggle'
-import { motion } from 'framer-motion'
-import { useAuthStore } from '../stores/useAuthStore'
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ChevronRight } from 'lucide-react'
-import Logo from '../components/ui/Logo'
-import { useThemeStore } from '../stores/useThemeStore'
-import {
-  House,
-  CalendarDays,
-  WashingMachine,
-  User,
-  BookOpenCheck,
-} from 'lucide-react'
-import FabMenu from '../components/ui/FabMenu'
+// src/layouts/Navbar.jsx (Updated & Refactored)
+
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useAuthStore } from '../stores/useAuthStore';
+import { useThemeStore } from '../stores/useThemeStore';
+import { House, BookOpenCheck, WashingMachine, User, ChevronRight } from 'lucide-react';
+import ThemeToggle from '../components/ThemeToggle';
+import Logo from '../components/ui/Logo';
+
+// Helper to keep the Navbar's dynamic styling clean and readable.
+const getNavBackgroundStyle = (theme) => {
+  if (theme === 'dark') {
+    return 'radial-gradient(ellipse 50% 60% at 50% 80%, rgba(16,185,129,0.2), transparent 100%), rgba(0,0,0,0.25)';
+  }
+  // A more subtle gradient for light mode that works with backdrop-blur.
+  return 'radial-gradient(ellipse at top, rgba(230, 252, 245, 0.7), transparent 80%), rgba(255,255,255,0.5)';
+};
+
+// Defined outside the component to prevent re-creation on every render.
+const navItems = [
+  { to: '/dashboard', label: 'Dashboard', Icon: House },
+  { to: '/wardrobe', label: 'Wardrobe', Icon: BookOpenCheck },
+  { to: '/laundry', label: 'Laundry', Icon: WashingMachine },
+  { to: '/profile', label: 'Profile', Icon: User },
+];
 
 export default function Navbar() {
-  const { user, logout } = useAuthStore()
-  const theme = useThemeStore((state) => state.theme)
-  const location = useLocation()
-  const isLanding = location.pathname === '/'
-  const [open, setOpen] = useState(false)
-  const navigate = useNavigate()
+  const { user } = useAuthStore();
+  const theme = useThemeStore((state) => state.theme);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isLanding = location.pathname === '/';
 
-  const navItems = [
-    {
-      to: '/dashboard',
-      label: 'Dashboard',
-      icon: <House size={24} color="#e042f5" />,
-    },
-    {
-      to: '/wardrobe',
-      label: 'Wardrobe',
-      icon: <BookOpenCheck size={24} color="#12913c" />,
-    },
-    {
-      to: '/laundry',
-      label: 'Laundry',
-      icon: <WashingMachine size={24} color="#12913c" />,
-    },
-    {
-      to: '/profile',
-      label: 'Profile',
-      icon: <User size={24} color="#e042f5" />,
-    },
-  ]
+  const renderNavActions = () => {
+    if (!user) {
+      return <ThemeToggle />;
+    }
+
+    if (isLanding) {
+      return (
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg font-semibold text-gray-800 dark:text-white bg-white/50 dark:bg-black/20 border border-black/10 dark:border-white/20 shadow-md hover:shadow-lg transition-all"
+        >
+          Dashboard
+          <ChevronRight className="w-4 h-4" />
+        </motion.button>
+      );
+    }
+
+    // Desktop navigation for authenticated users inside the app
+    return (
+      <div className="hidden sm:flex justify-end items-center gap-2">
+        {navItems.map((item) => (
+          <motion.div key={item.to} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Link
+              to={item.to}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-500/10 transition-colors"
+            >
+              {/* Using CSS classes for colors makes them theme-aware. */}
+              <item.Icon className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
+              <span className="text-sm font-medium">{item.label}</span>
+            </Link>
+          </motion.div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <motion.nav
       initial={{ y: -10, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className="sticky top-0 z-20 p-3 md:p-4 backdrop-blur border-b border-white/20 dark:border-gray-700/40"
-      style={{
-        background: theme === 'dark' && isLanding
-          ? 'radial-gradient(ellipse 50% 60% at 50% 80%, rgba(16,185,129,0.25), transparent 100%), rgba(0,0,0,0.25)' 
-          : theme === 'dark' && !isLanding
-          ? 'radial-gradient(ellipse 50% 60% at 50% 80%, rgba(16,185,129,0.25), transparent 100%), rgba(0,0,0,0.25)' 
-          : theme === 'light' && isLanding
-          ? 'radial-gradient(125% 125% at 50% 10%, #ffffff 40%, #10b981 100%)' 
-          : theme === 'light' && !isLanding
-          ? 'radial-gradient(125% 125% at 50% 90%, #ffffff 40%, #10b981 100%)' 
-          : 'radial-gradient(125% 125% at 50% 10%, #ffffff 40%, #10b981 100%)' 
-      }}
+      className="sticky top-0 z-20 p-3 md:p-4 backdrop-blur-sm border-b border-black/10 dark:border-white/10"
+      style={{ background: getNavBackgroundStyle(theme) }}
     >
-
-
-      {/* if user is not logged in */}
-      {!user && (
-        <div className="container flex items-center justify-between sm:justify-around mx-auto px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center">
-            <Logo />
-          </Link>
-
-          <ThemeToggle />
-        </div>
-      )}
-
-      {/* if user is logged in and landing page */}
-      {user && isLanding && (
-        <div className="container flex items-center justify-between sm:justify-around mx-auto px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center">
-            <Logo />
-          </Link>
-
-          <motion.button
-            whileHover={{
-              scale: 1.02,
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              navigate('/dashboard')
-              setOpen(false)
-            }}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg 
-                 font-semibold text-white 
-                 bg-gradient-to-b from-gray-700 to-gray-900/60
-                 dark:from-gray-900 dark:to-gray-800/70
-                 shadow-md hover:shadow-lg transition-all"
-          >
-            Dashboard
-            <ChevronRight className="w-4 h-4" />
-          </motion.button>
-        </div>
-      )}
-
-      {/* if user is logged in and not Landing page and desktop */}
-      {user && !isLanding && (
-        <div className="container hidden sm:flex items-center justify-between mx-auto px-4 sm:px-0 lg:px-6">
-          <Link to="/" className="flex items-center">
-            <Logo />
-          </Link>
-          <div className="flex justify-end items-center gap-3">
-            {navItems.map((item, idx) => (
-              <motion.div
-                key={idx}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-              >
-                <Link
-                  to={item.to}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 rounded hover:bg-gray-100/70 dark:hover:bg-gray-800/70"
-                >
-                  <span className="text-lg leading-none">{item.icon}</span>
-                  <span className="text-sm">{item.label}</span>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* if user is logged in and not Landing page and mobile */}
-      {user && !isLanding && (
-        <div className="container flex items-center justify-between sm:justify-around mx-auto px-4 sm:px-6 lg:px-8 md:hidden">
-          <Link to="/" className="flex items-center">
-            <Logo />
-          </Link>
-        </div>
-      )}
+      <div className="container flex items-center justify-between mx-auto px-4 sm:px-6 lg:px-8">
+        <Link to={user ? "/" : "/"} className="flex items-center">
+          <Logo />
+        </Link>
+        {renderNavActions()}
+      </div>
     </motion.nav>
-  )
+  );
 }
