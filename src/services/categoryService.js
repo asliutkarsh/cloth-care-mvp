@@ -24,8 +24,10 @@ export const CategoryService = {
       parentId: null,
       maxWearCount: 2,
       ...categoryData,
+      icon: categoryData?.icon || '👕',
       createdAt: new Date().toISOString(),
     };
+
     categories.push(newCategory);
     await StorageService.set(KEY, categories);
     return newCategory;
@@ -46,6 +48,7 @@ export const CategoryService = {
       ...categoryData,
       parentId: parentId,
       maxWearCount: categoryData.maxWearCount || parent.maxWearCount || 2,
+      icon: categoryData?.icon || parent.icon || '👕',
       createdAt: new Date().toISOString(),
     };
 

@@ -23,6 +23,50 @@
 
 @layer components {
 	.glass-card {
-		@apply bg-teal-100/20 dark:bg-teal-900/20 backdrop-blur-md rounded-xl shadow-lg p-4;
+	  @apply bg-white/60 dark:bg-black/20 backdrop-blur-lg rounded-xl shadow-lg p-4 border border-white/20 dark:border-white/10;
+	}
+
+	/* App/page background helper */
+	.app-bg {
+		@apply bg-app-gradient dark:bg-app-gradient;
+	}
+
+	/* Buttons */
+	.btn {
+		@apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+	}
+	.btn-primary {
+		@apply btn bg-primary-activeBg text-white hover:from-primary-deep hover:to-primary-bright hover:bg-gradient-to-r focus-visible:ring-primary-deep/40 ring-offset-transparent;
+	}
+	.btn-accent {
+		@apply btn bg-accent-violet/20 text-accent-violet hover:bg-accent-violet/30 focus-visible:ring-accent-violet/40;
+	}
+
+	/* Tags / Pills */
+	.tag {
+		@apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors;
+	}
+	/* Better dark-mode contrast for tags */
+	.tag-clean { @apply tag bg-status-clean/15 dark:bg-status-clean/20 text-status-clean ring-1 ring-status-clean/30 dark:ring-status-clean/40; }
+	.tag-worn { @apply tag bg-status-worn/20 dark:bg-status-worn/25 text-status-worn ring-1 ring-status-worn/30 dark:ring-status-worn/40; }
+	.tag-dirty { @apply tag bg-status-dirty/15 dark:bg-status-dirty/20 text-status-dirty ring-1 ring-status-dirty/30 dark:ring-status-dirty/40; }
+	.tag-new { @apply tag bg-status-new/15 dark:bg-status-new/20 text-status-new ring-1 ring-status-new/30 dark:ring-status-new/40; }
+
+	/* Status ring for avatars/thumbnails */
+	.status-ring { @apply relative inline-flex items-center justify-center rounded-full; }
+	.status-ring::after { content: ""; }
+	.status-ring-clean { @apply ring-2 ring-status-clean; }
+	.status-ring-worn { @apply ring-2 ring-status-worn; }
+	.status-ring-dirty { @apply ring-2 ring-status-dirty; }
+	.status-ring-new { @apply ring-2 ring-status-new; }
+
+	/* Hover highlight */
+	.hover-highlight {
+		@apply transition-colors hover:bg-accent-violet/10 hover:ring-1 hover:ring-accent-violet/30;
+	}
+
+	/* Card gradient helper */
+	.card-gradient {
+		@apply bg-card-gradient;
 	}
 }

@@ -5,25 +5,29 @@ import {
   LaundryService,
   ActivityLogService,
   AnalyticsService,
+  OutfitService,
 } from '../services'
 
 export const useWardrobeStore = create((set, get) => ({
   clothes: [],
   categories: [],
+  outfits: [],
   dirtyClothes: [],
   needsPressing: [],
   isInitialized: false,
 
   fetchAll: async () => {
-    const [clothes, categories, laundryStatus] = await Promise.all([
+    const [clothes, categories, laundryStatus, outfits] = await Promise.all([
       ClothService.getAll(),
       CategoryService.getHierarchy(),
       LaundryService.getLaundryStatus(),
+      OutfitService.getAll(),
     ])
 
     set({
       clothes,
       categories,
+      outfits,
       dirtyClothes: laundryStatus.dirty,
       needsPressing: laundryStatus.needsPressing,
       isInitialized: true,
@@ -146,6 +150,20 @@ export const useWardrobeStore = create((set, get) => ({
   removeOutfit: async (outfitId) => {
     await OutfitService.remove(outfitId);
     await get().fetchAll();
+  },
+
+  // --- SELECTORS ---
+  getParentCategories: () => {
+    const { categories } = get()
+    return (categories || []).filter(c => !c.parentId)
+  },
+  getUniqueOutfitTags: () => {
+    const { outfits } = get()
+    const tags = new Set()
+    for (const o of outfits || []) {
+      for (const t of o.tags || []) tags.add(t)
+    }
+    return Array.from(tags)
   },
 
 }))

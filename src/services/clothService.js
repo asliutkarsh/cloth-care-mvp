@@ -42,6 +42,7 @@ export const ClothService = {
       cost: 0,
       purchaseDate: null,
       requiresPressing: false,
+      favorite: false,
       ...clothData, // User-provided data overrides defaults
       status: this.STATUSES.CLEAN,
       currentWearCount: 0,

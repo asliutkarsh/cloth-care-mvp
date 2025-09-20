@@ -6,6 +6,7 @@ import {
   Signup,
   Dashboard,
   Settings,
+  ManageFiltersPage,
   Profile,
   Wardrobe,
   Laundry,
@@ -23,18 +24,16 @@ import { useEffect } from 'react'
 import { useThemeStore } from './stores/useThemeStore'
 import { useAuthStore } from './stores/useAuthStore'
 import { useWardrobeStore } from './stores/useWardrobeStore'
+import { useSettingsStore } from './stores/useSettingsStore'
 
 export default function App() {
-  useEffect(() => {
-    useThemeStore.getState().initializeTheme()
-  }, [])
-
   useEffect(() => {
     // We call the actions directly on the store's initial state
     // because we are outside a React component's render cycle.
     useAuthStore.getState().checkAuth()
     useThemeStore.getState().initializeTheme()
     useWardrobeStore.getState().fetchAll()
+    useSettingsStore.getState().fetchPreferences()
   }, [])
 
   return (
@@ -76,6 +75,7 @@ export default function App() {
               path="/settings/categories"
               element={<CategoryManagementPage />}
             />
+            <Route path="/settings/filters" element={<ManageFiltersPage />} />
           </Route>
 
           {/* --- Not Found Route --- */}

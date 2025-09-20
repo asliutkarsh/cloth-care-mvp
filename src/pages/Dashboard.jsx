@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useWardrobeStore } from '../stores/useWardrobeStore';
 import { useLaundryStore } from '../stores/useLaundryStore';
 import { useCalendarStore } from '../stores/useCalendarStore';
+import { useSettingsStore } from '../stores/useSettingsStore';
 import { Button } from '../components/ui';
 import { PlusCircle, BookPlus, Shirt, Layers, WashingMachine } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -15,6 +16,7 @@ const StatCard = ({ icon, value, label, onClick }) => (
     className="glass-card p-4 text-center w-full"
     whileHover={{ scale: 1.05 }}
     transition={{ type: 'spring', stiffness: 300 }}
+    aria-label={`View ${label}`}
   >
     <div className="w-10 h-10 mx-auto bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-2">
       {icon}
@@ -47,6 +49,9 @@ const ActivityItem = ({ activity, details }) => (
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  useEffect(() => {
+    useSettingsStore.getState().initialize();
+  }, []);
   const user = useAuthStore(state => state.user);
   const { clothes, outfits, isInitialized: isWardrobeReady } = useWardrobeStore();
   const { dirtyClothes, needsPressing } = useLaundryStore();
@@ -108,10 +113,10 @@ export default function Dashboard() {
         {/* Quick Actions */}
         <div className="space-y-4">
           <h2 className="text-xl font-bold">Quick Actions</h2>
-          <Button fullWidth size="lg" onClick={() => navigate('/calendar?openAdd=1')}>
+          <Button fullWidth size="lg" onClick={() => navigate('/calendar?openAdd=1')} className="hover:from-primary-deep hover:to-primary-bright hover:bg-gradient-to-r">
             <BookPlus className="mr-2" /> Log Today's Wear
           </Button>
-          <Button fullWidth size="lg" variant="secondary" onClick={() => navigate('/wardrobe')}>
+          <Button fullWidth size="lg" variant="secondary" onClick={() => navigate('/wardrobe')} className="hover:from-primary-deep hover:to-primary-bright hover:bg-gradient-to-r">
             <PlusCircle className="mr-2" /> Add a New Cloth
           </Button>
         </div>
@@ -126,8 +131,9 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500 glass-card">
-              <p>No recent activity logged.</p>
+            <div className="text-center py-8 glass-card border border-dashed border-accent-violet/40 bg-accent-violet/10 text-coolgray-700 dark:text-coolgray-500">
+              <p className="mb-2">No recent activity logged.</p>
+              <p className="text-sm">Try <span className="tag-new">New</span> outfit ideas or mark items as <span className="tag-worn">Worn</span> to keep track.</p>
             </div>
           )}
         </div>

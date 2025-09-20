@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import { PreferenceService, BackupService, SetupService } from '../services';
 
-export const useSettingsStore = create((set) => ({
+export const useSettingsStore = create((set, get) => ({
   // =================================================================
   // STATE
   // =================================================================
   preferences: null,
   isInitialized: false,
+  filterChipSettings: { clothes: [], outfits: [] },
+  outfitTagSuggestions: [],
 
   // =================================================================
   // ACTIONS
@@ -17,7 +19,12 @@ export const useSettingsStore = create((set) => ({
    */
   fetchPreferences: async () => {
     const prefs = await PreferenceService.getPreferences();
-    set({ preferences: prefs, isInitialized: true });
+    set({
+      preferences: prefs,
+      isInitialized: true,
+      filterChipSettings: prefs.filterChipSettings || { clothes: [], outfits: [] },
+      outfitTagSuggestions: prefs.outfitTagSuggestions || [],
+    });
   },
 
   /**
@@ -27,6 +34,15 @@ export const useSettingsStore = create((set) => ({
     const newPrefs = { [key]: value };
     await PreferenceService.updatePreferences(newPrefs);
     // After updating, re-fetch to ensure the state is in sync
+    await get().fetchPreferences();
+  },
+
+  /**
+   * Updates filter chip settings for clothes and outfits.
+   * @param {{clothes: string[], outfits: string[]}} settings
+   */
+  updateFilterChipSettings: async (settings) => {
+    await PreferenceService.updatePreferences({ filterChipSettings: settings });
     await get().fetchPreferences();
   },
 
@@ -81,6 +97,10 @@ export const useSettingsStore = create((set) => ({
    */
   resetApp: async () => {
       await SetupService.resetApp();
+  },
+
+  initialize: async () => {
+    await SetupService.initialize()
   },
 
 }));

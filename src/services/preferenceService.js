@@ -12,6 +12,24 @@ const DEFAULT_PREFERENCES = {
     dayOfWeek: 0,
     time: '09:00',
   },
+  // Settings-backed quick filters for Wardrobe
+  filterChipSettings: {
+    // Clothes: default to empty; can be populated with category IDs or special keys like 'status-clean'
+    clothes: [],
+    // Outfits: user-defined tag strings like '#summer'
+    outfits: [],
+  },
+  // Suggestions built from previously used outfit tags
+  outfitTagSuggestions: [],
+  // Usage stats for outfit tags for ranking suggestions
+  outfitTagStats: {
+    // '#summer': { count: 0, lastUsed: 'ISO' }
+  },
+  // Wardrobe defaults persisted
+  wardrobeDefaults: {
+    viewMode: 'grid',
+    sortBy: 'newest',
+  },
 };
 
 export const PreferenceService = {
@@ -38,7 +56,22 @@ export const PreferenceService = {
         ...currentPrefs.notifications,
         ...newPrefs.notifications,
       },
+      filterChipSettings: {
+        ...currentPrefs.filterChipSettings,
+        ...newPrefs.filterChipSettings,
+        clothes: newPrefs.filterChipSettings?.clothes ?? currentPrefs.filterChipSettings?.clothes ?? [],
+        outfits: newPrefs.filterChipSettings?.outfits ?? currentPrefs.filterChipSettings?.outfits ?? [],
+      },
+      wardrobeDefaults: {
+        ...currentPrefs.wardrobeDefaults,
+        ...newPrefs.wardrobeDefaults,
+      },
+      outfitTagStats: {
+        ...currentPrefs.outfitTagStats,
+        ...newPrefs.outfitTagStats,
+      },
     };
+
     await StorageService.set(KEY, updatedPrefs);
     return updatedPrefs;
   },

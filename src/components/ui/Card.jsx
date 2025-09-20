@@ -1,11 +1,23 @@
 import React from 'react';
 import clsx from 'clsx';
 
-export function Card({ className, children, padded = true, shadow = 'sm', ...props }) {
+const variants = {
+  default: 'bg-white/70 dark:bg-gray-800/70',
+  info: 'bg-accent-blueLight/15',
+  warning: 'bg-status-worn/15',
+  accent: 'bg-accent-cyan/10',
+  clean: 'bg-status-clean/10',
+  worn: 'bg-status-worn/15',
+  dirty: 'bg-status-dirty/10',
+  new: 'bg-status-new/10',
+};
+
+export function Card({ className, children, padded = true, shadow = 'sm', variant = 'default', ...props }) {
   return (
     <div
       className={clsx(
-        'rounded-xl border border-white/20 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur',
+        'rounded-xl border border-white/20 dark:border-white/10 backdrop-blur card-gradient',
+        variants[variant],
         shadow === 'none' && 'shadow-none',
         shadow === 'sm' && 'shadow-sm',
         shadow === 'md' && 'shadow',

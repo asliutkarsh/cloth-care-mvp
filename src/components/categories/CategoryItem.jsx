@@ -37,24 +37,25 @@ export default function CategoryItem({
           >
             {isExpanded ? <ChevronDown /> : <ChevronRight />}
           </button>
-          <div>
+          <div className="flex items-center gap-2">
+            <span className="text-lg leading-none" title="Icon">{category.icon || '👕'}</span>
             <p className="font-medium">{category.name}</p>
-            <div className="flex items-center gap-4 text-xs text-gray-500">
-              <span>Max Wears: {category.maxWearCount}</span>
-              <span className="text-gray-300 dark:text-gray-600">|</span>
-              <span>Items: {itemCount}</span>
-            </div>
+          </div>
+          <div className="flex items-center gap-4 text-xs text-gray-500">
+            <span>Max Wears: {category.maxWearCount}</span>
+            <span className="text-gray-300 dark:text-gray-600">|</span>
+            <span>Items: {itemCount}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button variant="ghost" size="icon" /* ... */>
+          <Button variant="ghost" size="icon" onClick={() => onAddSub?.(category.id)}>
             <PlusCircle size={16} />
           </Button>
-          <Button variant="ghost" size="icon" /* ... */>
+          <Button variant="ghost" size="icon" onClick={() => onEdit?.(category)}>
             <Edit size={16} />
           </Button>
-          <Button variant="ghost" size="icon" /* ... */>
+          <Button variant="ghost" size="icon" onClick={() => onDelete?.(category.id)}>
             <Trash2 size={16} className="text-red-500" />
           </Button>
         </div>

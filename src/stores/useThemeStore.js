@@ -13,20 +13,21 @@ export const useThemeStore = create((set, get) => ({
    */
   initializeTheme: () => {
     const storedTheme = localStorage.getItem(THEME_KEY);
-    
+
     // Function to apply the theme class to the <html> element
     const applyTheme = (theme) => {
       const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       if (theme === 'dark' || (theme === 'system' && systemPrefersDark)) {
         document.documentElement.classList.add('dark');
+        set({ theme: 'dark' });
       } else {
         document.documentElement.classList.remove('dark');
+        set({ theme: 'light' });
       }
     };
     
     // Set initial theme based on storage or system preference
     const initialTheme = storedTheme || 'system';
-    set({ theme: initialTheme });
     applyTheme(initialTheme);
     
     // Add a listener to react to system theme changes

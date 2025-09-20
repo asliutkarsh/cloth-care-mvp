@@ -26,9 +26,9 @@ export default function LaundryList({ title, items, actionText, onAction }) {
               <button
                 key={item.id}
                 onClick={() => toggleSelection(item.id)}
-                className={`w-full flex items-center gap-4 p-3 text-left rounded-lg transition-colors ${selectedIds.includes(item.id) ? 'bg-blue-100 dark:bg-blue-900/30' : 'hover:bg-gray-100/50 dark:hover:bg-gray-700/50'}`}
+                className={`w-full flex items-center gap-4 p-3 text-left rounded-lg transition-colors ${selectedIds.includes(item.id) ? 'bg-primary-bright/10 dark:bg-primary-deep/20' : 'hover:bg-accent-violet/10'}`}
               >
-                <div className={`w-6 h-6 rounded-md border flex items-center justify-center ${selectedIds.includes(item.id) ? 'bg-blue-600 border-blue-600' : 'border-gray-300 dark:border-gray-600'}`}>
+                <div className={`w-6 h-6 rounded-md border flex items-center justify-center ${selectedIds.includes(item.id) ? 'bg-primary-deep border-primary-deep' : 'border-gray-300 dark:border-gray-600'}`}>
                   {selectedIds.includes(item.id) && <Check size={16} className="text-white" />}
                 </div>
                 <div>
@@ -48,9 +48,10 @@ export default function LaundryList({ title, items, actionText, onAction }) {
           </Button>
         </>
       ) : (
-        <div className="text-center py-8 text-gray-500">
-          <Shirt size={32} className="mx-auto mb-2" />
-          <p>Nothing here!</p>
+        <div className="text-center py-8 glass-card border border-dashed border-accent-violet/40 bg-accent-violet/10 text-coolgray-700 dark:text-coolgray-500">
+          <Shirt size={32} className="mx-auto mb-2 text-accent-violet" />
+          <p className="mb-1">Nothing here!</p>
+          <p className="text-sm">Items marked <span className="tag-dirty">Dirty</span> or <span className="tag-new">New</span> will appear here.</p>
         </div>
       )}
     </div>

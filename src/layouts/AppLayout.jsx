@@ -1,16 +1,20 @@
 // src/layouts/AppLayout.jsx (Updated)
 
 import { Outlet, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Navbar from './Navbar';
 import BottomNav from './BottomNav';
+import Sidebar from './Sidebar';
 import AddClothModal from '../components/modal/AddClothModal';
+import OutfitModal from '../components/modal/OutfitModal';
 import { useWardrobeStore } from '../stores/useWardrobeStore';
 import BaseLayout from './BaseLayout'; // Use the new BaseLayout
 
 export default function AppLayout() {
-  const { addCloth } = useWardrobeStore();
+  const { addCloth, createOutfit } = useWardrobeStore();
   const [isAddClothModalOpen, setAddClothModalOpen] = useState(false);
+  const [isOutfitModalOpen, setOutfitModalOpen] = useState(false);
+  const [outfitInitialData, setOutfitInitialData] = useState(null);
   const navigate = useNavigate();
 
   const handleLogWearClick = () => {
@@ -22,13 +26,35 @@ export default function AppLayout() {
     setAddClothModalOpen(false);
   };
 
+  // Allow other components to request opening the AddCloth modal via a window event
+  useEffect(() => {
+    const handler = () => setAddClothModalOpen(true);
+    window.addEventListener('open-add-cloth', handler);
+    return () => window.removeEventListener('open-add-cloth', handler);
+  }, []);
+
+  // Global handler to open Outfit modal
+  useEffect(() => {
+    const handler = (e) => {
+      const detail = e?.detail || null;
+      setOutfitInitialData(detail || null);
+      setOutfitModalOpen(true);
+    };
+    window.addEventListener('open-outfit-modal', handler);
+    return () => window.removeEventListener('open-outfit-modal', handler);
+  }, []);
+
   return (
     <BaseLayout>
       <Navbar />
-      {/* Add padding-bottom to prevent content from being hidden by the fixed BottomNav */}
-      <main className="flex-1 pb-24 md:pb-0">
-        <Outlet />
-      </main>
+      {/* Desktop Sidebar and shifted content */}
+      <div className="relative">
+        <Sidebar />
+        {/* Add padding-bottom to prevent content from being hidden by the fixed BottomNav; shift content on desktop */}
+        <main className="flex-1 pb-24 md:pb-0 md:ml-60">
+          <Outlet />
+        </main>
+      </div>
       
       <BottomNav
         onAddClothClick={() => setAddClothModalOpen(true)}
@@ -40,6 +66,19 @@ export default function AppLayout() {
           open={isAddClothModalOpen}
           onClose={() => setAddClothModalOpen(false)}
           onAdd={handleAddCloth}
+        />
+      )}
+
+      {isOutfitModalOpen && (
+        <OutfitModal
+          open={isOutfitModalOpen}
+          onClose={() => { setOutfitModalOpen(false); setOutfitInitialData(null); }}
+          initialData={outfitInitialData}
+          onSubmit={async (data) => {
+            await createOutfit(data)
+            setOutfitModalOpen(false)
+            setOutfitInitialData(null)
+          }}
         />
       )}
     </BaseLayout>

@@ -1,17 +1,17 @@
 import React, { useState, useMemo } from 'react'
 import { useWardrobeStore } from '../stores/useWardrobeStore'
-import { Search, SlidersHorizontal } from 'lucide-react'
-import {
-  Input,
-  Button,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from '../components/ui'
+import { useSettingsStore } from '../stores/useSettingsStore'
+import { SlidersHorizontal } from 'lucide-react'
+import { Button, Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui'
 import ClothList from '../components/wardrobe/ClothList'
-import OutfitList from '../components/wardrobe/OutfitList' // 1. Import the new component
-import FilterPanel from '../components/wardrobe/FilterPanel'
+import OutfitList from '../components/wardrobe/OutfitList'
+import OutfitRow from '../components/wardrobe/OutfitRow'
+import FilterChipBar from '../components/wardrobe/FilterChipBar'
+import ExpandableSearch from '../components/wardrobe/ExpandableSearch'
+import CreateNewMenu from '../components/wardrobe/CreateNewMenu'
+import ViewControls from '../components/wardrobe/ViewControls'
+import ClothRow from '../components/wardrobe/ClothRow'
+import BulkActionBar from '../components/wardrobe/BulkActionBar'
 
 export default function Wardrobe() {
   const {
@@ -20,31 +20,61 @@ export default function Wardrobe() {
     categories = [],
     isInitialized,
   } = useWardrobeStore()
+  const { preferences, fetchPreferences, updatePreference } = useSettingsStore()
+
   const [activeTab, setActiveTab] = useState('clothes')
   const [searchTerm, setSearchTerm] = useState('')
-  const [filters, setFilters] = useState({ status: [], categoryId: null })
-  const [isFilterPanelOpen, setFilterPanelOpen] = useState(false)
+  const [filters, setFilters] = useState({ categoryId: null, tag: null })
+  const [viewMode, setViewMode] = useState(preferences?.wardrobeDefaults?.viewMode || 'grid') // 'grid' | 'list'
+  const [sortBy, setSortBy] = useState(preferences?.wardrobeDefaults?.sortBy || 'newest') // 'newest' | 'name' | 'mostWorn'
+  const [isSelectMode, setIsSelectMode] = useState(false)
+  const [selectedItems, setSelectedItems] = useState([])
 
-  // 2. Filtered clothes logic
   const filteredClothes = useMemo(() => {
-    return clothes.filter((cloth) => {
-      const searchMatch = cloth.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-      const statusMatch =
-        filters.status.length === 0 || filters.status.includes(cloth.status)
-      const categoryMatch =
-        !filters.categoryId || cloth.categoryId === filters.categoryId
-      return searchMatch && statusMatch && categoryMatch
-    })
-  }, [clothes, searchTerm, filters])
+    // Build a set of allowed category IDs including subcategories when a parent is chosen
+    let allowedCats = null
+    if (filters.categoryId) {
+      const buildDescendants = (id, acc = new Set()) => {
+        acc.add(id)
+        for (const c of categories) {
+          if (c.parentId === id) buildDescendants(c.id, acc)
+        }
+        return acc
+      }
+      allowedCats = buildDescendants(filters.categoryId)
+    }
 
-  // 3. Filtered outfits logic
+    const filtered = clothes.filter((cloth) => {
+      const searchMatch = cloth.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const categoryMatch = !allowedCats || allowedCats.has(cloth.categoryId)
+      const favoriteMatch = !filters.favorite || !!cloth.favorite
+      return searchMatch && categoryMatch && favoriteMatch
+    })
+    const sorted = [...filtered]
+    if (sortBy === 'name') {
+      sorted.sort((a, b) => a.name.localeCompare(b.name))
+    } else if (sortBy === 'mostWorn') {
+      sorted.sort((a, b) => (b.currentWearCount ?? 0) - (a.currentWearCount ?? 0))
+    } else {
+      // newest by createdAt desc
+      sorted.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+    }
+    return sorted
+  }, [clothes, searchTerm, filters, sortBy])
+
   const filteredOutfits = useMemo(() => {
-    return outfits.filter((outfit) =>
-      outfit.name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  }, [outfits, searchTerm])
+    return outfits.filter((outfit) => {
+      const nameMatch = outfit.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const want = (filters.tag || '').toLowerCase()
+      const wantNoHash = want.startsWith('#') ? want.slice(1) : want
+      const tagMatch = !want || (outfit.tags || []).some(t => {
+        const tt = (t || '').toLowerCase()
+        return tt === want || tt === `#${wantNoHash}` || (tt.startsWith('#') ? tt.slice(1) : tt) === wantNoHash
+      })
+      const favoriteMatch = !filters.favorite || !!outfit.favorite
+      return nameMatch && tagMatch && favoriteMatch
+    })
+  }, [outfits, searchTerm, filters])
 
   if (!isInitialized) {
     return (
@@ -53,7 +83,7 @@ export default function Wardrobe() {
   }
 
   return (
-    <div className="flex">
+    <div className="flex relative">
       <main className="flex-grow max-w-7xl mx-auto p-4 pb-24 sm:p-6 md:p-8">
         <header className="mb-6">
           <h1 className="text-3xl font-bold mb-2">My Wardrobe</h1>
@@ -63,60 +93,147 @@ export default function Wardrobe() {
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="flex flex-col sm:flex-row gap-4 mb-4">
-            <TabsList>
-              <TabsTrigger value="clothes">
-                Clothes ({clothes?.length})
-              </TabsTrigger>
-              <TabsTrigger value="outfits">
-                Outfits ({outfits?.length})
-              </TabsTrigger>
-            </TabsList>
+          <div className="flex flex-col gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <TabsList className="flex gap-2 overflow-x-auto no-scrollbar">
+                <TabsTrigger
+                  value="clothes"
+                  className={`${
+                    activeTab === 'clothes'
+                      ? 'bg-primary text-white'
+                      : 'text-gray-600'
+                  } py-2 px-4 rounded transition-all`}
+                >
+                  Clothes ({clothes?.length})
+                </TabsTrigger>
+                <TabsTrigger
+                  value="outfits"
+                  className={`${
+                    activeTab === 'outfits'
+                      ? 'bg-primary text-white'
+                      : 'text-gray-600'
+                  } py-2 px-4 rounded transition-all`}
+                >
+                  Outfits ({outfits?.length})
+                </TabsTrigger>
+              </TabsList>
 
-            <div className="relative flex-grow">
-              <Search
-                size={18}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <Input
-                placeholder={`Search in ${activeTab}...`} // 4. Dynamic placeholder
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+              <div className="flex flex-1 items-center gap-2 flex-wrap">
+                <ExpandableSearch
+                  value={searchTerm}
+                  onChange={setSearchTerm}
+                  placeholder={`Search in ${activeTab}...`}
+                  className="flex-1 min-w-[220px]"
+                />
+                <CreateNewMenu />
+
+                {activeTab === 'clothes' && (
+                  <Button
+                    variant={isSelectMode ? 'secondary' : 'outline'}
+                    onClick={() => {
+                      setIsSelectMode((s) => !s)
+                      setSelectedItems([])
+                    }}
+                  >
+                    {isSelectMode ? 'Done' : 'Select'}
+                  </Button>
+                )}
+
+                {activeTab === 'clothes' && (
+                  <ViewControls
+                    viewMode={viewMode}
+                    sortBy={sortBy}
+                    onViewChange={(vm) => {
+                      setViewMode(vm)
+                      updatePreference('wardrobeDefaults', { ...(preferences?.wardrobeDefaults||{}), viewMode: vm })
+                    }}
+                    onSortChange={(sb) => {
+                      setSortBy(sb)
+                      updatePreference('wardrobeDefaults', { ...(preferences?.wardrobeDefaults||{}), sortBy: sb })
+                    }}
+                    className="w-full sm:w-auto"
+                    showViewToggle={false}
+                  />
+                )}
+              </div>
             </div>
 
             {activeTab === 'clothes' && (
-              <Button
-                variant="secondary"
-                className="flex items-center gap-2"
-                onClick={() => setFilterPanelOpen(true)}
-              >
-                <SlidersHorizontal size={16} />
-                Filters
-              </Button>
+              <FilterChipBar
+                categories={categories}
+                filters={filters}
+                onChange={setFilters}
+                className="-mb-1"
+              />
             )}
           </div>
 
           <TabsContent value="clothes">
-            <ClothList clothes={filteredClothes} />
+            {viewMode === 'grid' ? (
+              <ClothList
+                clothes={filteredClothes}
+                isSelectMode={isSelectMode}
+                selectedItems={selectedItems}
+                onSelectToggle={(id) => setSelectedItems((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
+              />
+            ) : (
+              <div className="space-y-2">
+                {filteredClothes.map((cloth) => (
+                  <ClothRow
+                    key={cloth.id}
+                    cloth={cloth}
+                    category={categories.find((c) => c.id === cloth.categoryId)}
+                    isSelectMode={isSelectMode}
+                    isSelected={selectedItems.includes(cloth.id)}
+                    onSelectToggle={(id) => setSelectedItems((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
+                  />
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="outfits">
-            <OutfitList outfits={filteredOutfits} /> {/* 5. Use OutfitList */}
+            <FilterChipBar
+              mode="outfits"
+              filters={filters}
+              onChange={setFilters}
+              className="mb-3"
+            />
+            {viewMode === 'grid' ? (
+              <OutfitList outfits={filteredOutfits} />
+            ) : (
+              <div className="space-y-2">
+                {filteredOutfits.map((outfit) => (
+                  <OutfitRow key={outfit.id} outfit={outfit} onClick={() => navigate(`/wardrobe/outfit/${outfit.id}`)} />
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </main>
 
-      {/* Filter Side Panel for clothes */}
-      <FilterPanel
-        isOpen={isFilterPanelOpen}
-        onClose={() => setFilterPanelOpen(false)}
-        clothes={clothes}
-        categories={categories}
-        currentFilters={filters}
-        onFilterChange={setFilters}
-      />
+      {isSelectMode && (
+        <BulkActionBar
+          count={selectedItems.length}
+          onCancel={() => { setIsSelectMode(false); setSelectedItems([]) }}
+          onDelete={async () => {
+            const { removeCloth } = useWardrobeStore.getState()
+            for (const id of selectedItems) {
+              await removeCloth(id)
+            }
+            setSelectedItems([])
+          }}
+          onAddToLaundry={async () => {
+            const { washItems } = useWardrobeStore.getState()
+            await washItems(selectedItems)
+            setSelectedItems([])
+          }}
+          onCreateOutfit={() => {
+            window.dispatchEvent(new CustomEvent('open-outfit-modal', { detail: { clothIds: selectedItems } }))
+          }}
+        />
+      )}
+
     </div>
   )
 }
