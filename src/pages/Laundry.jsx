@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useLaundryStore } from '../stores/useLaundryStore';
 import LaundryList from '../components/laundry/LaundryList';
 import { WashingMachine } from 'lucide-react';
+import LaundrySkeleton from '../components/skeleton/LaundrySkeleton';
 
 export default function Laundry() {
   const { 
@@ -18,7 +19,7 @@ export default function Laundry() {
   }, [fetchStatus]);
 
   if (!isInitialized) {
-    return <div>Loading laundry...</div>; // Or a skeleton loader
+    return <LaundrySkeleton />;
   }
 
   return (

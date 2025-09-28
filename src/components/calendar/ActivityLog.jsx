@@ -1,8 +1,9 @@
 import React from 'react';
-import { CalendarDays, Clock, Layers, Shirt, Trash2 } from 'lucide-react';
+import { CalendarDays, Clock, Layers, Shirt, Trash2, Plus } from 'lucide-react';
 import { useCalendarStore } from '../../stores/useCalendarStore';
+import { Button } from '../ui';
 
-export default function ActivityLog({ selectedDate, activitiesForDay, getActivityDetails }) {
+export default function ActivityLog({ selectedDate, activitiesForDay, getActivityDetails, onAddActivity }) {
   // Get the delete action from the central store
   const { deleteActivity } = useCalendarStore();
 
@@ -12,11 +13,22 @@ export default function ActivityLog({ selectedDate, activitiesForDay, getActivit
     <div className="glass-card">
       {/* Header Section */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2 mb-2">
-          <CalendarDays size={20} className="text-blue-600 dark:text-blue-400" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {selectedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-          </h3>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <CalendarDays size={20} className="text-blue-600 dark:text-blue-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {selectedDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+            </h3>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onAddActivity && onAddActivity()}
+            className="flex items-center gap-1"
+          >
+            <Plus size={14} />
+            Log Activity
+          </Button>
         </div>
         {isToday && (
           <span className="inline-block px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-full">
@@ -48,7 +60,7 @@ export default function ActivityLog({ selectedDate, activitiesForDay, getActivit
                       {details.items}
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={() => deleteActivity(activity.id)}
                     className="p-1 text-gray-400 hover:text-red-500 transition-colors"
                     aria-label="Delete activity"
@@ -60,12 +72,20 @@ export default function ActivityLog({ selectedDate, activitiesForDay, getActivit
             })}
           </div>
         ) : (
-          // Empty State
+          // Empty State with CTA
           <div className="text-center py-8">
             <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
               <CalendarDays size={24} className="text-gray-400" />
             </div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">No activity logged for this date.</p>
+            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">No activity logged for this date.</p>
+            <Button
+              variant="secondary"
+              onClick={() => onAddActivity && onAddActivity()}
+              className="inline-flex items-center gap-2"
+            >
+              <Plus size={16} />
+              Log Activity
+            </Button>
           </div>
         )}
       </div>

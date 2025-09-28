@@ -47,9 +47,13 @@ export const AuthService = {
     return userToSet;
   },
 
-  async logout() {
-    await UserService.clearUser();
-    return true;
+  async demoLogin() {
+    const demoCredentials = {
+      email: 'demo@cloth.com',
+      password: 'demo123'
+    };
+
+    return await this.login(demoCredentials);
   },
 
   async getCurrentUser() {

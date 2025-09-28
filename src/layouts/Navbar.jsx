@@ -1,5 +1,3 @@
-// src/layouts/Navbar.jsx (Updated & Refactored)
-
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -8,13 +6,11 @@ import { ChevronRight } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 import Logo from '../components/ui/Logo';
 
-// Helper to keep the Navbar's dynamic styling clean and readable.
 const getNavBackgroundStyle = (theme) => {
   console.log(`theme: ${theme}`);
   if (theme === 'dark') {
     return 'radial-gradient(ellipse 50% 60% at 50% 80%, rgba(16,185,129,0.2), transparent 100%), rgba(0,0,0,0.25)';
   }
-  // A more subtle gradient for light mode that works with backdrop-blur.
   return 'radial-gradient(ellipse at top, rgba(230, 252, 245, 0.7), transparent 80%), rgba(255,255,255,0.5)';
 };
 
@@ -43,24 +39,6 @@ export default function Navbar() {
         </motion.button>
       );
     }
-
-    // Desktop navigation is moved to Sidebar. Keep this hidden in Navbar.
-    // return (
-    //   <div className="hidden">
-    //     {navItems.map((item) => (
-    //       <motion.div key={item.to} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-    //         <Link
-    //           to={item.to}
-    //           className="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-500/10 transition-colors"
-    //         >
-    //           {/* Using CSS classes for colors makes them theme-aware. */}
-    //           <item.Icon className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
-    //           <span className="text-sm font-medium">{item.label}</span>
-    //         </Link>
-    //       </motion.div>
-    //     ))}
-    //   </div>
-    // );
   };
 
   return (

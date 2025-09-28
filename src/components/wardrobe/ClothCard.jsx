@@ -93,7 +93,7 @@ export default function ClothCard({ cloth, isSelectMode = false, selected = fals
 
         {/* Favorite toggle */}
         <button
-          className="absolute top-2 right-2 p-1 rounded-full bg-white/80 dark:bg-gray-900/80 border border-white/30 dark:border-white/10 shadow hover-highlight"
+          className="absolute bottom-2 right-2 p-1 rounded-full bg-white/80 dark:bg-gray-900/80 border border-white/30 dark:border-white/10 shadow hover-highlight"
           onClick={(e) => {
             e.stopPropagation();
             updateCloth(cloth.id, { favorite: !cloth.favorite });
@@ -105,7 +105,7 @@ export default function ClothCard({ cloth, isSelectMode = false, selected = fals
 
         {/* Selection checkbox overlay */}
         {isSelectMode && (
-          <div className="absolute top-2 right-2">
+          <div className="absolute bottom-2 left-2">
             <input
               type="checkbox"
               checked={selected}

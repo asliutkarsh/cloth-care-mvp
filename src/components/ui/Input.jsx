@@ -32,7 +32,7 @@ export default function Input({
             <div
                 className={clsx(
                     'relative flex items-center rounded-lg border bg-white/70 dark:bg-gray-800/70 backdrop-blur',
-                    'focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent',
+                    'focus-within:ring-2 focus-within:ring-primary-deep focus-within:border-transparent',
                     error
                         ? 'border-red-400 dark:border-red-500'
                         : 'border-gray-300 dark:border-gray-600',

@@ -32,6 +32,7 @@ function SortableItem({ id, label, onRemove }) {
 
 export default function OutfitModal({ open, onClose, onSubmit, initialData = null }) {
   const { clothes, categories = [] } = useWardrobeStore();
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [name, setName] = useState('');
   const [canvasIds, setCanvasIds] = useState([]);
   const [search, setSearch] = useState('');
@@ -67,6 +68,8 @@ export default function OutfitModal({ open, onClose, onSubmit, initialData = nul
       setCanvasIds([]);
       setTagsInput('');
     }
+    // Reset drag state when modal opens/closes
+    setIsDraggingOver(false);
   }, [initialData, open]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
@@ -233,11 +236,27 @@ export default function OutfitModal({ open, onClose, onSubmit, initialData = nul
             <div
               id="canvas"
               onDragOver={(e) => e.preventDefault()}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                setIsDraggingOver(true);
+              }}
+              onDragLeave={(e) => {
+                // Only set to false if we're leaving the canvas entirely
+                // (not just moving between child elements)
+                if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget)) {
+                  setIsDraggingOver(false);
+                }
+              }}
               onDrop={(e) => {
                 const id = e.dataTransfer.getData('text/plain');
                 if (id) handleAddToCanvas(id);
+                setIsDraggingOver(false);
               }}
-              className="min-h-48 rounded-md border border-dashed border-gray-300 dark:border-gray-700 p-2"
+              className={`min-h-48 rounded-md border-2 border-dashed p-2 transition-all duration-200 ${
+                isDraggingOver
+                  ? 'border-primary-deep bg-primary-deep/10 dark:border-primary-bright dark:bg-primary-bright/10'
+                  : 'border-gray-300 dark:border-gray-700'
+              }`}
             >
               <SortableContext items={canvasIds} strategy={verticalListSortingStrategy}>
                 <div className="flex flex-col gap-2">

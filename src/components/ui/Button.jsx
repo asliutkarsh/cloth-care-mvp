@@ -12,11 +12,11 @@ const sizes = {
 
 const variants = {
   primary:
-    'bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.99] focus-visible:ring-blue-500 dark:focus-visible:ring-offset-gray-900',
+    'bg-primary-activeBg text-white hover:bg-primary-deep focus-visible:ring-primary-deep/40 ring-offset-transparent',
   secondary:
-    'bg-gray-100 text-gray-800 hover:bg-gray-200 focus-visible:ring-gray-500 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600',
+    'bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600 focus-visible:ring-gray-500 dark:ring-offset-gray-900',
   ghost:
-    'bg-transparent text-gray-800 hover:bg-gray-100 focus-visible:ring-gray-400 dark:text-gray-100 dark:hover:bg-gray-700',
+    'bg-transparent text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 focus-visible:ring-gray-400 dark:ring-offset-gray-900',
   danger:
     'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500',
 };

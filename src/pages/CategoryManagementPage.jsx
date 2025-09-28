@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWardrobeStore } from '../stores/useWardrobeStore'
 import { ArrowLeft, PlusCircle } from 'lucide-react'
@@ -6,6 +6,7 @@ import { Button } from '../components/ui'
 import CategoryItem from '../components/categories/CategoryItem'
 import CategoryModal from '../components/modal/CategoryModal'
 import ConfirmationModal from '../components/modal/ConfirmationModal'
+import CategoryManagementSkeleton from '../components/skeleton/CategoryManagementSkeleton'
 
 const getRecursiveItemCount = (category, allClothes) => {
   let count = allClothes.filter((c) => c.categoryId === category.id).length;
@@ -69,13 +70,7 @@ export default function CategoryManagementPage() {
     setConfirmState({ open: false, categoryId: null })
   }
 
-  if (!isInitialized) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <span className="text-gray-500 dark:text-gray-400">Loading categories...</span>
-      </div>
-    );
-  }
+  if (!isInitialized) return <CategoryManagementSkeleton />;
   return (
     <div className="max-w-4xl mx-auto p-4 pb-24 sm:p-6 md:p-8">
       <div className="glass-card w-full p-0">

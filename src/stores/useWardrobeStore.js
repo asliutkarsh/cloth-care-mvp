@@ -35,11 +35,11 @@ export const useWardrobeStore = create((set, get) => ({
   },
 
   /**
-   * Adds a new cloth item and refreshes the state.
+   * Adds a new cloth item and updates the state directly.
    */
   addCloth: async (clothData) => {
-    await ClothService.add(clothData)
-    get().fetchAll() // Easiest way to keep everything in sync
+    const newCloth = await ClothService.add(clothData);
+    set(state => ({ clothes: [...state.clothes, newCloth] }));
   },
 
   /**

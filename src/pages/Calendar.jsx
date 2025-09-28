@@ -5,6 +5,7 @@ import { useWardrobeStore } from '../stores/useWardrobeStore';
 import AddActivityModal from '../components/modal/AddActivityModal';
 import {CalendarHeader, WeekdayHeader, CalendarGrid, ActivityLog } from '../components/calendar';
 import { BookOpenCheck } from 'lucide-react';
+import CalendarSkeleton from '../components/skeleton/CalendarSkeleton';
 
 export default function Calendar() {
   // --- Get data and actions from Zustand stores ---
@@ -75,12 +76,7 @@ export default function Calendar() {
   }, [longPressTimer]);
 
   if (!isCalendarInitialized) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <BookOpenCheck className="animate-pulse" />
-        <p className="ml-2">Loading Calendar...</p>
-      </div>
-    );
+    return <CalendarSkeleton />;
   }
 
   return (
@@ -112,6 +108,7 @@ export default function Calendar() {
             selectedDate={selectedDate}
             activitiesForDay={activities[selectedDate.toISOString().split('T')[0]] || []}
             getActivityDetails={getActivityDetails}
+            onAddActivity={() => setShowAddModal(true)}
           />
         </div>
       </div>

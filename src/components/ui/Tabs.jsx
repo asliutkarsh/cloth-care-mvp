@@ -50,7 +50,7 @@ export function TabsTrigger({ value, children, className }) {
       className={clsx(
         'flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors',
         selected
-          ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400'
+          ? 'text-primary-deep dark:text-primary-bright border-primary-deep dark:border-primary-bright'
           : 'text-gray-600 dark:text-gray-400 border-transparent hover:text-gray-900 dark:hover:text-white',
         className,
       )}

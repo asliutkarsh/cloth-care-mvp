@@ -8,6 +8,7 @@ import { useSettingsStore } from '../stores/useSettingsStore';
 import { Button } from '../components/ui';
 import { PlusCircle, BookPlus, Shirt, Layers, WashingMachine } from 'lucide-react';
 import { motion } from 'framer-motion';
+import DashboardSkeleton from '../components/skeleton/DashboardSkeleton';
 
 // Reusable Stat Card for displaying key metrics
 const StatCard = ({ icon, value, label, onClick }) => (
@@ -26,26 +27,106 @@ const StatCard = ({ icon, value, label, onClick }) => (
   </motion.button>
 );
 
-// Component to display a single recent activity
-const ActivityItem = ({ activity, details }) => (
-  <div className="flex items-center gap-3 p-3 bg-gray-50/50 dark:bg-gray-700/50 rounded-lg">
-    <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
-      activity.type === 'outfit' 
-        ? 'bg-blue-200 dark:bg-blue-800' 
-        : 'bg-green-200 dark:bg-green-800'
-    }`}>
-      {activity.type === 'outfit' 
-        ? <Layers size={16} className="text-blue-600 dark:text-blue-400" /> 
-        : <Shirt size={16} className="text-green-600 dark:text-green-400" />}
+// Component to display a random favorite outfit suggestion
+const OutfitSuggestionCard = () => {
+  const { outfits, clothes } = useWardrobeStore();
+  const { addActivity } = useCalendarStore();
+  const navigate = useNavigate();
+
+  const favoriteOutfits = useMemo(() => {
+    return outfits.filter(outfit => outfit.favorite === true);
+  }, [outfits]);
+
+  const randomOutfit = useMemo(() => {
+    if (favoriteOutfits.length === 0) return null;
+    return favoriteOutfits[Math.floor(Math.random() * favoriteOutfits.length)];
+  }, [favoriteOutfits]);
+
+  const getOutfitItems = (outfit) => {
+    return outfit.clothIds
+      .map(clothId => clothes.find(cloth => cloth.id === clothId))
+      .filter(Boolean);
+  };
+
+  const handleWearToday = async () => {
+    if (randomOutfit) {
+      try {
+        // Log the outfit activity for today
+        await addActivity(
+          {
+            type: 'outfit',
+            outfitId: randomOutfit.id,
+          },
+          new Date()
+        );
+
+        // Navigate to calendar to show the logged activity
+        navigate('/calendar');
+      } catch (error) {
+        console.error('Failed to log outfit:', error);
+        // Still navigate to calendar even if logging fails
+        navigate('/calendar');
+      }
+    }
+  };
+
+  if (!randomOutfit) {
+    return (
+      <div className="glass-card p-6 text-center">
+        <h3 className="text-lg font-semibold mb-2">Outfit Suggestion</h3>
+        <p className="text-gray-600 dark:text-gray-400 mb-4">
+          No favorite outfits found. Mark some outfits as favorites to get suggestions!
+        </p>
+        <Button
+          variant="secondary"
+          onClick={() => navigate('/wardrobe', { state: { defaultTab: 'outfits' } })}
+        >
+          <Layers className="mr-2" /> View Outfits
+        </Button>
+      </div>
+    );
+  }
+
+  const outfitItems = getOutfitItems(randomOutfit);
+
+  return (
+    <div className="glass-card p-6">
+      <h3 className="text-lg font-semibold mb-4">Today's Outfit Suggestion</h3>
+
+      <div className="mb-4">
+        <h4 className="font-medium text-primary-deep dark:text-primary-bright mb-2">
+          {randomOutfit.name}
+        </h4>
+        {randomOutfit.description && (
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            {randomOutfit.description}
+          </p>
+        )}
+
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Items:</p>
+          <div className="grid grid-cols-2 gap-2">
+            {outfitItems.map(item => (
+              <div
+                key={item.id}
+                className="text-xs bg-gray-50 dark:bg-gray-700/50 rounded px-2 py-1"
+              >
+                {item.name}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <Button
+        onClick={handleWearToday}
+        className="w-full"
+      >
+        <Shirt className="mr-2" /> Wear This Today
+      </Button>
     </div>
-    <div>
-      <p className="font-medium text-sm">{details.name}</p>
-      <p className="text-xs text-gray-500">
-        {new Date(activity.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-      </p>
-    </div>
-  </div>
-);
+  );
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -68,7 +149,7 @@ export default function Dashboard() {
   const inLaundryCount = (dirtyClothes?.length || 0) + (needsPressing?.length || 0);
 
   if (!isWardrobeReady || !user) {
-    return <div>Loading dashboard...</div>; // Optionally replace with a proper skeleton loader
+    return <DashboardSkeleton />;
   }
 
   const getGreeting = () => {
@@ -108,8 +189,8 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Quick Actions & Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Quick Actions, Recent Activity & Outfit Suggestion */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Quick Actions */}
         <div className="space-y-4">
           <h2 className="text-xl font-bold">Quick Actions</h2>
@@ -120,6 +201,9 @@ export default function Dashboard() {
             <PlusCircle className="mr-2" /> Add a New Cloth
           </Button>
         </div>
+
+        {/* Outfit Suggestion */}
+        <OutfitSuggestionCard />
 
         {/* Recent Activity */}
         <div className="space-y-4">

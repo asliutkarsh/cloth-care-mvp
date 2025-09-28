@@ -38,13 +38,17 @@ export const useAuthStore = create((set, get) => ({
   },
 
   /**
-   * --- THIS IS THE FIX ---
-   * The demoLogin action is now much simpler. It just calls the main login
-   * action with the demo credentials.
+   * Demo login functionality - calls AuthService.demoLogin() with predefined credentials
    */
   demoLogin: async () => {
-    // The `login` action will automatically create the demo user if it doesn't exist.
-    return get().login('demo@cloth.com', 'demo123');
+    try {
+      const loggedInUser = await AuthService.demoLogin();
+      set({ user: loggedInUser });
+      return loggedInUser;
+    } catch (error) {
+      console.error("Demo login failed:", error);
+      throw error;
+    }
   },
 
   logout: async () => {

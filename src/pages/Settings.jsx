@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import ThemeToggle from '../components/ThemeToggle';
 import { Button, SettingsMenuItem } from '../components/ui';
 import ConfirmationModal from '../components/modal/ConfirmationModal';
+import SettingsSkeleton from '../components/skeleton/SettingsSkeleton';
 
 
 
@@ -17,8 +18,11 @@ export default function Settings() {
   const [viewMode, setViewMode] = useState(preferences?.wardrobeDefaults?.viewMode || 'grid');
 
   useEffect(() => {
-    if (!preferences) fetchPreferences();
-  }, []);
+    if (!preferences) {
+      fetchPreferences();
+      return <SettingsSkeleton />;
+    }
+  }, [preferences, fetchPreferences]);
 
   useEffect(() => {
     if (preferences?.wardrobeDefaults?.viewMode) {

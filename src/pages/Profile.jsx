@@ -4,9 +4,10 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useWardrobeStore } from '../stores/useWardrobeStore';
 import { AnalyticsService } from '../services';
 import { Settings, Calendar, LogOut, User, Shirt, Layers } from 'lucide-react';
-import { Button , SettingsMenuItem} from '../components/ui';
+import { Button, SettingsMenuItem } from '../components/ui';
 import ConfirmationModal from '../components/modal/ConfirmationModal';
 import { motion } from 'framer-motion';
+import ProfileSkeleton from '../components/skeleton/ProfileSkeleton';
 
 // Motion variants
 const fadeInUp = {
@@ -22,21 +23,6 @@ const fadeInUp = {
   }),
 };
 
-const ProfileSkeleton = () => (
-  <div role="status" aria-label="Loading profile" className="animate-pulse flex flex-col items-center space-y-4 mb-8">
-    <div className="w-24 h-24 rounded-full bg-gray-300 dark:bg-gray-700"></div>
-    <div className="h-6 w-40 bg-gray-300 dark:bg-gray-700 rounded"></div>
-    <div className="h-4 w-60 bg-gray-300 dark:bg-gray-700 rounded"></div>
-  </div>
-);
-
-const StatCardSkeleton = () => (
-  <div className="glass-card p-4 text-center animate-pulse rounded-lg" role="status" aria-label="Loading statistic">
-    <div className="w-10 h-10 mx-auto bg-emerald-200 dark:bg-emerald-900/40 rounded-full mb-2"></div>
-    <div className="h-8 w-12 mx-auto bg-gray-300 dark:bg-gray-700 rounded mb-1"></div>
-    <div className="h-4 w-20 mx-auto bg-gray-300 dark:bg-gray-700 rounded"></div>
-  </div>
-);
 
 const StatCard = ({ icon, value, label, index }) => (
   <motion.div
@@ -78,16 +64,7 @@ export default function Profile() {
   };
 
   if (!isInitialized || !user) {
-    return (
-      <main className="max-w-4xl mx-auto p-4 pb-24 sm:p-6 md:p-8" aria-live="polite">
-        <ProfileSkeleton />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <StatCardSkeleton />
-          <StatCardSkeleton />
-          <StatCardSkeleton />
-        </div>
-      </main>
-    );
+    return <ProfileSkeleton />;
   }
 
   return (

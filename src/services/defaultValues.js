@@ -104,6 +104,7 @@ export const createDefaultOutfits = (clothes) => {
         find("Stainless steel watch"),
       ].filter(Boolean),
       occasion: "Smart Casual",
+      favorite: true,
     },
     {
       id: uuidv4(),
@@ -175,6 +176,7 @@ export const createDefaultOutfits = (clothes) => {
         find("White sneakers"),
       ].filter(Boolean),
       occasion: "Everyday",
+      favorite: true,
     },
   ];
 };

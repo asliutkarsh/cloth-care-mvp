@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useWardrobeStore } from '../stores/useWardrobeStore'
 import { useSettingsStore } from '../stores/useSettingsStore'
 import { SlidersHorizontal } from 'lucide-react'
 import { Button, Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui'
+import WardrobeSkeleton from '../components/skeleton/WardrobeSkeleton'
 import ClothList from '../components/wardrobe/ClothList'
 import OutfitList from '../components/wardrobe/OutfitList'
 import OutfitRow from '../components/wardrobe/OutfitRow'
@@ -76,15 +77,11 @@ export default function Wardrobe() {
     })
   }, [outfits, searchTerm, filters])
 
-  if (!isInitialized) {
-    return (
-      <div className="p-8 text-center text-gray-500">Loading wardrobe...</div>
-    )
-  }
+  if (!isInitialized) return <WardrobeSkeleton />
 
   return (
     <div className="flex relative">
-      <main className="flex-grow max-w-7xl mx-auto p-4 pb-24 sm:p-6 md:p-8">
+      <main className="flex-grow max-w-7xl mx-auto p-3 sm:p-4 pb-24 sm:pb-24 md:p-6">
         <header className="mb-6">
           <h1 className="text-3xl font-bold mb-2">My Wardrobe</h1>
           <p className="text-gray-600 dark:text-gray-400">
@@ -95,49 +92,52 @@ export default function Wardrobe() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex flex-col gap-3 mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <TabsList className="flex gap-2 overflow-x-auto no-scrollbar">
+              <TabsList className="w-full sm:w-auto flex gap-1 sm:gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
                 <TabsTrigger
                   value="clothes"
                   className={`${
                     activeTab === 'clothes'
-                      ? 'bg-primary text-white'
-                      : 'text-gray-600'
-                  } py-2 px-4 rounded transition-all`}
+                      ? 'text-white dark:text-red'
+                      : 'text-gray-600 dark:text-gray-400'
+                  } py-2 px-3 sm:px-4 text-sm sm:text-base rounded-lg transition-all whitespace-nowrap`}
                 >
-                  Clothes ({clothes?.length})
+                  Clothes ({clothes?.length || 0})
                 </TabsTrigger>
                 <TabsTrigger
                   value="outfits"
                   className={`${
                     activeTab === 'outfits'
-                      ? 'bg-primary text-white'
-                      : 'text-gray-600'
-                  } py-2 px-4 rounded transition-all`}
+                      ? 'text-white dark:text-black'
+                      : 'text-gray-600 dark:text-gray-400'
+                  } py-2 px-3 sm:px-4 text-sm sm:text-base rounded-lg transition-all whitespace-nowrap`}
                 >
-                  Outfits ({outfits?.length})
+                  Outfits ({outfits?.length || 0})
                 </TabsTrigger>
               </TabsList>
 
-              <div className="flex flex-1 items-center gap-2 flex-wrap">
+              <div className="flex flex-1 items-center gap-2 flex-wrap mt-2 sm:mt-0">
                 <ExpandableSearch
                   value={searchTerm}
                   onChange={setSearchTerm}
                   placeholder={`Search in ${activeTab}...`}
-                  className="flex-1 min-w-[220px]"
+                  className="flex-1 min-w-0 w-full sm:w-auto"
                 />
-                <CreateNewMenu />
+                <div className="flex items-center gap-2">
+                  <CreateNewMenu />
 
-                {activeTab === 'clothes' && (
-                  <Button
-                    variant={isSelectMode ? 'secondary' : 'outline'}
-                    onClick={() => {
-                      setIsSelectMode((s) => !s)
-                      setSelectedItems([])
-                    }}
-                  >
-                    {isSelectMode ? 'Done' : 'Select'}
-                  </Button>
-                )}
+                  {activeTab === 'clothes' && (
+                    <Button
+                      variant={isSelectMode ? 'secondary' : 'outline'}
+                      onClick={() => {
+                        setIsSelectMode((s) => !s)
+                        setSelectedItems([])
+                      }}
+                      className="shrink-0"
+                    >
+                      {isSelectMode ? 'Done' : 'Select'}
+                    </Button>
+                  )}
+                </div>
 
                 {activeTab === 'clothes' && (
                   <ViewControls
@@ -168,7 +168,7 @@ export default function Wardrobe() {
             )}
           </div>
 
-          <TabsContent value="clothes">
+          <TabsContent value="clothes" className="mt-2">
             {viewMode === 'grid' ? (
               <ClothList
                 clothes={filteredClothes}
@@ -177,7 +177,7 @@ export default function Wardrobe() {
                 onSelectToggle={(id) => setSelectedItems((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
               />
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 -mx-1 sm:mx-0">
                 {filteredClothes.map((cloth) => (
                   <ClothRow
                     key={cloth.id}
@@ -192,19 +192,25 @@ export default function Wardrobe() {
             )}
           </TabsContent>
 
-          <TabsContent value="outfits">
+          <TabsContent value="outfits" className="mt-2">
             <FilterChipBar
               mode="outfits"
               filters={filters}
               onChange={setFilters}
-              className="mb-3"
+              className="mb-3 -mx-1 sm:mx-0"
             />
             {viewMode === 'grid' ? (
-              <OutfitList outfits={filteredOutfits} />
+              <div className="-mx-1 sm:mx-0">
+                <OutfitList outfits={filteredOutfits} />
+              </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 -mx-1 sm:mx-0">
                 {filteredOutfits.map((outfit) => (
-                  <OutfitRow key={outfit.id} outfit={outfit} onClick={() => navigate(`/wardrobe/outfit/${outfit.id}`)} />
+                  <OutfitRow 
+                    key={outfit.id} 
+                    outfit={outfit} 
+                    onClick={() => navigate(`/wardrobe/outfit/${outfit.id}`)} 
+                  />
                 ))}
               </div>
             )}
@@ -215,25 +221,32 @@ export default function Wardrobe() {
       {isSelectMode && (
         <BulkActionBar
           count={selectedItems.length}
-          onCancel={() => { setIsSelectMode(false); setSelectedItems([]) }}
+          onCancel={() => { 
+            setIsSelectMode(false); 
+            setSelectedItems([]); 
+          }}
           onDelete={async () => {
-            const { removeCloth } = useWardrobeStore.getState()
+            const { removeCloth } = useWardrobeStore.getState();
             for (const id of selectedItems) {
-              await removeCloth(id)
+              await removeCloth(id);
             }
-            setSelectedItems([])
+            setSelectedItems([]);
           }}
           onAddToLaundry={async () => {
-            const { washItems } = useWardrobeStore.getState()
-            await washItems(selectedItems)
-            setSelectedItems([])
+            const { washItems } = useWardrobeStore.getState();
+            await washItems(selectedItems);
+            setSelectedItems([]);
           }}
           onCreateOutfit={() => {
-            window.dispatchEvent(new CustomEvent('open-outfit-modal', { detail: { clothIds: selectedItems } }))
+            window.dispatchEvent(
+              new CustomEvent('open-outfit-modal', { 
+                detail: { clothIds: selectedItems } 
+              })
+            );
           }}
+          className="fixed bottom-4 left-4 right-4 sm:bottom-auto sm:left-auto sm:right-4 sm:top-20 sm:w-auto sm:max-w-md"
         />
       )}
-
     </div>
-  )
+  );
 }
