@@ -50,15 +50,17 @@ export default function ActivityLog({ selectedDate, activitiesForDay, getActivit
                   </div>
                   <div className="flex-1">
                     <div className="font-medium text-gray-900 dark:text-white mb-1">
-                      {details.name}
+                      {details.title || 'Activity'}
                     </div>
                     <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
                       <Clock size={12} className="inline mr-1" />
                       {new Date(activity.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400">
-                      {details.items}
-                    </div>
+                    {details.subtitle && (
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        {details.subtitle}
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={() => deleteActivity(activity.id)}

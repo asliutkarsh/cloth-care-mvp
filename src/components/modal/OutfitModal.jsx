@@ -4,282 +4,268 @@ import { useSettingsStore } from '../../stores/useSettingsStore';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { SortableContext, arrayMove, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { BadgePlus, Tag, Sparkles, Trash2 } from 'lucide-react';
 
-function SortableItem({ id, label, onRemove }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+const tagFromInput = (value = '') =>
+  value
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+    .map((tag) => (tag.startsWith('#') ? tag : `#${tag}`));
+
+const ClothChip = ({ cloth, onAdd, selected }) => {
+  const color = cloth?.color || '#1f2937';
   return (
-    <div
-      ref={setNodeRef}
-      {...attributes}
-      {...listeners}
-      className="flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm cursor-grab"
-      style={style}
+    <button
+      type="button"
+      onClick={() => onAdd?.(cloth.id)}
+      className={`group relative flex items-center gap-3 rounded-xl border transition shadow-sm backdrop-blur py-2 pl-2 pr-3 text-left ${
+        selected
+          ? 'border-primary-deep/70 bg-primary-deep/10 dark:border-primary-bright/60 dark:bg-primary-bright/10'
+          : 'border-gray-200/70 bg-white/80 hover:border-primary-deep/60 dark:border-gray-700/60 dark:bg-gray-900/60 hover:shadow-lg'
+      }`}
+      title={selected ? 'Already added' : 'Click to add'}
     >
-      <span className="truncate text-sm">{label}</span>
-      <button type="button" onClick={() => onRemove?.(id)} className="text-xs text-red-500 hover:underline">
-        Remove
-      </button>
-    </div>
+      <span
+        className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg border border-white/40 dark:border-gray-700"
+        style={{ backgroundColor: color }}
+      >
+        {cloth.image ? (
+          <img src={cloth.image} alt={cloth.name} className="h-full w-full object-cover" />
+        ) : (
+          <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white/90">
+            {cloth.name.slice(0, 1).toUpperCase()}
+          </span>
+        )}
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{cloth.name}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+          Worn {cloth.currentWearCount ?? 0} {cloth.currentWearCount === 1 ? 'time' : 'times'}
+        </p>
+      </div>
+      {!selected && (
+        <BadgePlus className="h-4 w-4 text-primary-deep/80 dark:text-primary-bright" />
+      )}
+    </button>
   );
-}
+};
+
+const CanvasChip = ({ cloth, onRemove }) => (
+  <div className="group relative flex items-center gap-3 rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/90 dark:bg-gray-900/70 px-3 py-2 shadow-sm">
+    <span className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-lg border border-white/40 dark:border-gray-700" style={{ backgroundColor: cloth.color || '#1f2937' }}>
+      {cloth.image ? (
+        <img src={cloth.image} alt={cloth.name} className="h-full w-full object-cover" />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-white/90">
+          {cloth.name.slice(0, 1).toUpperCase()}
+        </span>
+      )}
+    </span>
+    <div className="min-w-0">
+      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{cloth.name}</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{cloth.categoryName || 'Uncategorized'}</p>
+    </div>
+    <button
+      type="button"
+      onClick={() => onRemove?.(cloth.id)}
+      className="rounded-full border border-transparent p-1 text-gray-400 transition hover:border-red-200 hover:text-red-500 dark:hover:text-red-400"
+      aria-label={`Remove ${cloth.name}`}
+    >
+      <Trash2 className="h-4 w-4" />
+    </button>
+  </div>
+);
 
 export default function OutfitModal({ open, onClose, onSubmit, initialData = null }) {
   const { clothes, categories = [] } = useWardrobeStore();
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const { outfitTagSuggestions = [], fetchPreferences } = useSettingsStore();
+
   const [name, setName] = useState('');
-  const [canvasIds, setCanvasIds] = useState([]);
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [categoryId, setCategoryId] = useState('');
   const [tagsInput, setTagsInput] = useState('');
-  const tags = useMemo(() =>
-    tagsInput
-      .split(',')
-      .map(t => t.trim())
-      .filter(Boolean)
-  , [tagsInput]);
-  const { outfitTagSuggestions = [], fetchPreferences, preferences } = useSettingsStore();
-  const outfitTagStats = preferences?.outfitTagStats || {};
+  const [selectedClothIds, setSelectedClothIds] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
-    if (!outfitTagSuggestions?.length) fetchPreferences();
-  }, []);
-
-  // Debounce search
-  useEffect(() => {
-    const id = setTimeout(() => setDebouncedSearch(search), 200);
-    return () => clearTimeout(id);
-  }, [search]);
+    if (open && !outfitTagSuggestions.length) {
+      fetchPreferences();
+    }
+  }, [open, outfitTagSuggestions.length, fetchPreferences]);
 
   useEffect(() => {
     if (initialData) {
       setName(initialData.name || '');
-      setCanvasIds(initialData.clothIds || []);
+      setSelectedClothIds(initialData.clothIds || []);
       setTagsInput((initialData.tags || []).join(', '));
     } else {
       setName('');
-      setCanvasIds([]);
+      setSelectedClothIds([]);
       setTagsInput('');
     }
-    // Reset drag state when modal opens/closes
-    setIsDraggingOver(false);
   }, [initialData, open]);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  const tagList = useMemo(() => tagFromInput(tagsInput), [tagsInput]);
 
-  const cleanClothes = useMemo(
-    () => clothes.filter((c) => c.status === 'clean' && c.name.toLowerCase().includes((debouncedSearch||'').toLowerCase()) && (!categoryId || c.categoryId === categoryId)),
-    [clothes, debouncedSearch, categoryId]
+  const filteredClothes = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return clothes
+      .filter((cloth) => cloth.status === 'clean')
+      .filter((cloth) => (!q ? true : cloth.name.toLowerCase().includes(q)))
+      .filter((cloth) => (!categoryFilter ? true : cloth.categoryId === categoryFilter));
+  }, [clothes, query, categoryFilter]);
+
+  const selectedClothes = useMemo(
+    () => selectedClothIds.map((id) => clothes.find((c) => c.id === id)).filter(Boolean),
+    [selectedClothIds, clothes]
   );
 
-  const filteredLeftList = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return cleanClothes.filter((c) => {
-      const matchesQuery = !q || c.name.toLowerCase().includes(q);
-      const matchesCategory = !categoryId || c.categoryId === categoryId;
-      return matchesQuery && matchesCategory;
-    });
-  }, [cleanClothes, search, categoryId]);
-
-  const handleAddToCanvas = (id) => {
-    setCanvasIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  const handleAddCloth = (id) => {
+    setSelectedClothIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   };
 
-  const handleRemoveFromCanvas = (id) => {
-    setCanvasIds((prev) => prev.filter((x) => x !== id));
+  const handleRemoveCloth = (id) => {
+    setSelectedClothIds((prev) => prev.filter((x) => x !== id));
   };
 
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    if (!over) return;
-    const activeId = active.id;
-    const overId = over.id;
-    // If dragging from left list into canvas area
-    if (overId === 'canvas' && !canvasIds.includes(activeId)) {
-      handleAddToCanvas(activeId);
-      return;
-    }
-    // Reorder within canvas if both IDs are in canvasIds
-    if (canvasIds.includes(activeId) && canvasIds.includes(overId) && activeId !== overId) {
-      const oldIndex = canvasIds.indexOf(activeId);
-      const newIndex = canvasIds.indexOf(overId);
-      setCanvasIds((items) => arrayMove(items, oldIndex, newIndex));
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit({ name, clothIds: canvasIds, tags });
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    onSubmit({ name, clothIds: selectedClothIds, tags: tagList });
     onClose();
   };
 
-  return (
-    <Modal open={open} onClose={onClose} title={initialData ? 'Edit Outfit' : 'Create Outfit'}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Outfit Name"
-          required
-        />
+  const tagSuggestions = useMemo(() => {
+    const existing = new Set(tagList.map((tag) => tag.toLowerCase()));
+    return (outfitTagSuggestions || []).filter((tag) => !existing.has(tag.toLowerCase()))
+  }, [outfitTagSuggestions, tagList]);
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Tags input */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium mb-1">Tags (comma-separated)</label>
-            <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="#summer, #casual" />
-            {tags.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {tags.map((t) => (
-                  <button
-                    type="button"
-                    key={t}
-                    onClick={() => {
-                      const next = tags.filter(x => x.toLowerCase() !== t.toLowerCase())
-                      setTagsInput(next.join(', '))
-                    }}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 hover:opacity-80"
-                    title="Remove tag"
-                  >
-                    <span>{t}</span>
-                    <span aria-hidden>×</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            {outfitTagSuggestions?.length > 0 && (
-              <div className="mt-3">
-                <div className="text-xs text-gray-500 mb-1">Suggestions</div>
+  return (
+    <Modal open={open} onClose={onClose} title={initialData ? 'Edit Outfit' : 'Create Outfit'} size="3xl">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-8">
+          <section className="space-y-6">
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-200">Outfit name</label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g., Weekend brunch"
+                required
+              />
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-200">Tags</label>
+              <Input
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                placeholder="#summer, #casual"
+              />
+              {tagList.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {[...outfitTagSuggestions]
-                    .sort((a, b) => {
-                      const sa = outfitTagStats[a] || { count: 0, lastUsed: '' }
-                      const sb = outfitTagStats[b] || { count: 0, lastUsed: '' }
-                      if (sb.count !== sa.count) return sb.count - sa.count
-                      return (sb.lastUsed || '').localeCompare(sa.lastUsed || '')
-                    })
-                    .map((s) => (
+                  {tagList.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 rounded-full bg-primary-deep/10 text-primary-deep px-3 py-1 text-xs font-medium dark:bg-primary-bright/20 dark:text-primary-bright"
+                    >
+                      <Tag className="h-3.5 w-3.5" />
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {tagSuggestions.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {tagSuggestions.slice(0, 8).map((suggestion) => (
                     <button
-                      key={s}
+                      key={suggestion}
                       type="button"
                       onClick={() => {
-                        // Add if not present
-                        const current = new Set(tags.map(x => x.toLowerCase()))
-                        const norm = s.toLowerCase()
-                        if (!current.has(norm)) {
-                          const next = [...tags, s]
-                          setTagsInput(next.join(', '))
-                        }
+                        const next = [...tagList, suggestion];
+                        setTagsInput(next.join(', '));
                       }}
-                      className="px-2 py-0.5 rounded-full text-xs border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      className="rounded-full border border-gray-300 dark:border-gray-700 px-3 py-1 text-xs text-gray-600 dark:text-gray-200 hover:border-primary-deep hover:text-primary-deep"
                     >
-                      {s}
+                      {suggestion}
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
-          {/* Left: Clean clothes list */}
-          <div className="border rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-3">
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search clothes"
-              />
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="h-10 px-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"
-              >
-                <option value="">All Categories</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              )}
             </div>
 
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <div className="max-h-72 overflow-y-auto grid grid-cols-2 gap-2">
-                {filteredLeftList.map((cloth) => (
-                  <div
+            <div className="rounded-2xl border border-gray-200/70 dark:border-gray-700/60 bg-white/80 dark:bg-gray-900/70 shadow-sm">
+              <div className="border-b border-gray-200/70 dark:border-gray-700/60 px-4 py-3 flex flex-wrap items-center gap-3">
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search your wardrobe"
+                  className="flex-1"
+                />
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                >
+                  <option value="">All categories</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 max-h-[400px] overflow-y-auto">
+                {filteredClothes.map((cloth) => (
+                  <ClothChip
                     key={cloth.id}
-                    id={cloth.id}
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('text/plain', cloth.id);
-                    }}
-                    onDoubleClick={() => handleAddToCanvas(cloth.id)}
-                    className="p-2 rounded-md border border-gray-200 dark:border-gray-700 text-xs hover:bg-gray-50 dark:hover:bg-gray-800 cursor-grab"
-                    title="Drag to add or double-click to add"
-                  >
-                    {cloth.name}
-                  </div>
+                    cloth={cloth}
+                    selected={selectedClothIds.includes(cloth.id)}
+                    onAdd={handleAddCloth}
+                  />
                 ))}
+                {filteredClothes.length === 0 && (
+                  <p className="col-span-full text-sm text-gray-500 dark:text-gray-400">No items match those filters.</p>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <div className="rounded-2xl border border-dashed border-primary-deep/50 dark:border-primary-bright/40 bg-primary-deep/5 dark:bg-primary-bright/10 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-primary-deep dark:text-primary-bright">Your outfit</h3>
+                  <p className="text-xs text-primary-deep/70 dark:text-primary-bright/70">Drag or click items to build the look.</p>
+                </div>
+                <Sparkles className="h-5 w-5 text-primary-deep dark:text-primary-bright" />
               </div>
 
-              {/* Right panel drop area is outside this DndContext visual but handled via id */}
-            </DndContext>
-          </div>
-
-          {/* Right: Canvas */}
-          <div className="border rounded-lg p-3 min-h-72">
-            <div className="text-sm font-medium mb-2">Your Outfit</div>
-            <div
-              id="canvas"
-              onDragOver={(e) => e.preventDefault()}
-              onDragEnter={(e) => {
-                e.preventDefault();
-                setIsDraggingOver(true);
-              }}
-              onDragLeave={(e) => {
-                // Only set to false if we're leaving the canvas entirely
-                // (not just moving between child elements)
-                if (e.currentTarget === e.target || !e.currentTarget.contains(e.relatedTarget)) {
-                  setIsDraggingOver(false);
-                }
-              }}
-              onDrop={(e) => {
-                const id = e.dataTransfer.getData('text/plain');
-                if (id) handleAddToCanvas(id);
-                setIsDraggingOver(false);
-              }}
-              className={`min-h-48 rounded-md border-2 border-dashed p-2 transition-all duration-200 ${
-                isDraggingOver
-                  ? 'border-primary-deep bg-primary-deep/10 dark:border-primary-bright dark:bg-primary-bright/10'
-                  : 'border-gray-300 dark:border-gray-700'
-              }`}
-            >
-              <SortableContext items={canvasIds} strategy={verticalListSortingStrategy}>
-                <div className="flex flex-col gap-2">
-                  {canvasIds.map((id) => {
-                    const item = clothes.find((c) => c.id === id);
-                    if (!item) return null;
-                    return (
-                      <SortableItem
-                        key={id}
-                        id={id}
-                        label={item.name}
-                        onRemove={handleRemoveFromCanvas}
-                      />
-                    );
-                  })}
-                </div>
-              </SortableContext>
+              <div className="mt-4 flex flex-col gap-3">
+                {selectedClothes.length === 0 && (
+                  <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                    No items selected yet. Add pieces from the left.
+                  </div>
+                )}
+                {selectedClothes.map((cloth) => (
+                  <CanvasChip key={cloth.id} cloth={{ ...cloth, categoryName: categories.find((c) => c.id === cloth.categoryId)?.name }} onRemove={handleRemoveCloth} />
+                ))}
+              </div>
             </div>
-          </div>
+
+            <div className="rounded-2xl border border-gray-200/70 dark:border-gray-700/60 bg-white/80 dark:bg-gray-900/70 px-4 py-3 text-sm">
+              <p className="font-semibold text-gray-900 dark:text-gray-100">Quick tips</p>
+              <ul className="mt-2 space-y-1 text-xs text-gray-500 dark:text-gray-400">
+                <li>• Double-click a wardrobe item to add it instantly.</li>
+                <li>• Click a selected item to remove it.</li>
+                <li>• Tags help surface outfits in search.</li>
+              </ul>
+            </div>
+          </section>
         </div>
 
-        <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
           <Button type="submit">Save Outfit</Button>
         </div>
       </form>

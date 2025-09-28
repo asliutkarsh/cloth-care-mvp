@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useWardrobeStore } from '../stores/useWardrobeStore'
 import { useSettingsStore } from '../stores/useSettingsStore'
 import { SlidersHorizontal } from 'lucide-react'
@@ -15,6 +16,7 @@ import ClothRow from '../components/wardrobe/ClothRow'
 import BulkActionBar from '../components/wardrobe/BulkActionBar'
 
 export default function Wardrobe() {
+  const navigate = useNavigate()
   const {
     clothes = [],
     outfits = [],
@@ -31,13 +33,25 @@ export default function Wardrobe() {
   const [isSelectMode, setIsSelectMode] = useState(false)
   const [selectedItems, setSelectedItems] = useState([])
 
+  const flatCategories = useMemo(() => {
+    const list = []
+    const walk = (nodes = []) => {
+      for (const node of nodes) {
+        list.push(node)
+        if (node.children?.length) walk(node.children)
+      }
+    }
+    walk(categories)
+    return list
+  }, [categories])
+
   const filteredClothes = useMemo(() => {
     // Build a set of allowed category IDs including subcategories when a parent is chosen
     let allowedCats = null
     if (filters.categoryId) {
       const buildDescendants = (id, acc = new Set()) => {
         acc.add(id)
-        for (const c of categories) {
+        for (const c of flatCategories) {
           if (c.parentId === id) buildDescendants(c.id, acc)
         }
         return acc
@@ -163,7 +177,6 @@ export default function Wardrobe() {
                 categories={categories}
                 filters={filters}
                 onChange={setFilters}
-                className="-mb-1"
               />
             )}
           </div>
@@ -174,7 +187,11 @@ export default function Wardrobe() {
                 clothes={filteredClothes}
                 isSelectMode={isSelectMode}
                 selectedItems={selectedItems}
-                onSelectToggle={(id) => setSelectedItems((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
+                onSelectToggle={(id) =>
+                  setSelectedItems((prev) =>
+                    prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+                  )
+                }
               />
             ) : (
               <div className="space-y-2 -mx-1 sm:mx-0">
@@ -182,10 +199,14 @@ export default function Wardrobe() {
                   <ClothRow
                     key={cloth.id}
                     cloth={cloth}
-                    category={categories.find((c) => c.id === cloth.categoryId)}
+                    category={flatCategories.find((c) => c.id === cloth.categoryId)}
                     isSelectMode={isSelectMode}
                     isSelected={selectedItems.includes(cloth.id)}
-                    onSelectToggle={(id) => setSelectedItems((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
+                    onSelectToggle={(id) =>
+                      setSelectedItems((prev) =>
+                        prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+                      )
+                    }
                   />
                 ))}
               </div>
@@ -209,7 +230,6 @@ export default function Wardrobe() {
                   <OutfitRow 
                     key={outfit.id} 
                     outfit={outfit} 
-                    onClick={() => navigate(`/wardrobe/outfit/${outfit.id}`)} 
                   />
                 ))}
               </div>

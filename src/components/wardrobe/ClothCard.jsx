@@ -1,69 +1,117 @@
-import React, { useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Shirt, Heart } from 'lucide-react'
-import { useWardrobeStore } from '../../stores/useWardrobeStore'
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Heart } from "lucide-react";
+import { useWardrobeStore } from "../../stores/useWardrobeStore";
 
-export default function ClothCard({ cloth, isSelectMode = false, selected = false, onSelectToggle }) {
-  const navigate = useNavigate()
-  const { categories = [], updateCloth } = useWardrobeStore()
-  const longPressTimer = useRef(null)
-  const longPressedRef = useRef(false)
+const DEFAULT_CATEGORY = { name: "Unknown", icon: "❓" };
+
+const findCategoryById = (categoryTree = [], targetId) => {
+  if (!targetId) return null;
+  for (const node of categoryTree) {
+    if (node?.id === targetId) return node;
+    const childMatch = findCategoryById(node?.children || [], targetId);
+    if (childMatch) return childMatch;
+  }
+  return null;
+};
+export default function ClothCard({
+  cloth,
+  isSelectMode = false,
+  selected = false,
+  onSelectToggle,
+}) {
+  const navigate = useNavigate();
+  const { categories = [], updateCloth } = useWardrobeStore();
 
   const statusMap = {
-    clean: { tagClass: 'tag-clean', ringClass: 'status-ring-clean', label: 'Clean' },
-    dirty: { tagClass: 'tag-dirty', ringClass: 'status-ring-dirty', label: 'Dirty' },
-    needs_pressing: { tagClass: 'bg-accent-cyan/15 text-accent-cyan ring-1 ring-accent-cyan/30 rounded-full px-2 py-0.5 text-xs font-medium', ringClass: 'status-ring-new', label: 'Needs Pressing' },
-  }
+    clean: {
+      tagClass: "tag-clean",
+      ringClass: "status-ring-clean",
+      label: "Clean",
+    },
+    dirty: {
+      tagClass: "tag-dirty",
+      ringClass: "status-ring-dirty",
+      label: "Dirty",
+    },
+    needs_pressing: {
+      tagClass:
+        "bg-accent-cyan/15 text-accent-cyan ring-1 ring-accent-cyan/30 rounded-full px-2 py-0.5 text-xs font-medium",
+      ringClass: "status-ring-new",
+      label: "Needs Pressing",
+    },
+  };
 
-  const status = statusMap[cloth.status] || { tagClass: 'tag', ringClass: '', label: 'Unknown' }
+  const status = statusMap[cloth.status] || {
+    tagClass: "tag",
+    ringClass: "",
+    label: "Unknown",
+  };
+
+  const rawCategory = cloth.category;
+  const categoryId =
+    cloth.categoryId ??
+    (typeof rawCategory === "object" && rawCategory?.id) ??
+    (typeof rawCategory === "string" || typeof rawCategory === "number"
+      ? rawCategory
+      : null);
+  const resolvedCategory = findCategoryById(categories, categoryId);
+  const categoryData =
+    resolvedCategory ||
+    (typeof rawCategory === "object" && (rawCategory.name || rawCategory.icon)
+      ? rawCategory
+      : null) ||
+    DEFAULT_CATEGORY;
+  const categoryIcon = categoryData.icon || DEFAULT_CATEGORY.icon;
+  const categoryName = categoryData.name || DEFAULT_CATEGORY.name;
+
+  const hasColor =
+    typeof cloth.color === "string" && cloth.color.trim().length > 0;
+  const colorValue = hasColor ? cloth.color : "#d1d5db";
+  const colorLabel = hasColor ? cloth.color : "Neutral color";
+
+  const wearCount = cloth.currentWearCount ?? 0;
+  const cost = typeof cloth.cost === "number" ? cloth.cost : Number(cloth.cost || 0);
+  const hasCost = Number.isFinite(cost) && cost > 0;
+  const costPerWear = hasCost && wearCount > 0 ? cost / wearCount : cost;
+  const costPerWearLabel = hasCost
+    ? wearCount > 0
+      ? `$${costPerWear.toFixed(2)} per wear`
+      : `$${cost.toFixed(2)} total`
+    : null;
 
   const handleClick = () => {
-    if (longPressedRef.current) {
-      // If a long-press just triggered selection, swallow this click
-      longPressedRef.current = false
-      return
-    }
     if (isSelectMode) {
-      onSelectToggle?.(cloth.id)
+      onSelectToggle?.(cloth.id);
     } else {
-      navigate(`/wardrobe/cloth/${cloth.id}`)
+      navigate(`/wardrobe/cloth/${cloth.id}`);
     }
-  }
-
-  const startLongPress = () => {
-    longPressedRef.current = false
-    if (longPressTimer.current) clearTimeout(longPressTimer.current)
-    longPressTimer.current = setTimeout(() => {
-      longPressedRef.current = true
-      onSelectToggle?.(cloth.id)
-    }, 700) // 0.7s long press
-  }
-
-  const cancelLongPress = () => {
-    if (longPressTimer.current) clearTimeout(longPressTimer.current)
-  }
+  };
 
   return (
     <motion.button
       onClick={handleClick}
-      onMouseDown={startLongPress}
-      onMouseUp={cancelLongPress}
-      onMouseLeave={cancelLongPress}
-      onTouchStart={startLongPress}
-      onTouchEnd={(e) => {
-        // if long-pressed, prevent the click navigation
-        cancelLongPress()
-        if (longPressedRef.current) {
-          e.preventDefault()
-          e.stopPropagation()
-        }
-      }}
       whileHover={{ scale: 1.03 }}
-      transition={{ type: 'spring', stiffness: 300 }}
-      className={`relative text-left w-full rounded-xl shadow-md overflow-hidden card-gradient backdrop-blur border border-white/20 dark:border-white/10 transition-all group ${selected ? 'ring-2 ring-primary-deep' : ''}`}
+      transition={{ type: "spring", stiffness: 300 }}
+      className={`relative text-left w-full rounded-xl shadow-md overflow-hidden card-gradient backdrop-blur border border-white/20 dark:border-white/10 transition-all group ${
+        selected ? "ring-2 ring-primary-deep" : ""
+      }`}
     >
       <div className="relative aspect-square bg-gray-50 dark:bg-gray-900/70 flex items-center justify-center border-b border-black/5 dark:border-white/5">
+        <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-2 pointer-events-none">
+          {status.label !== "Unknown" && (
+            <span className={`${status.tagClass} pointer-events-none`}>
+              {status.label}
+            </span>
+          )}
+          <span className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md text-xs bg-white/90 dark:bg-gray-900/85 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 shadow-sm">
+            <span className="leading-none max-w-[8rem] truncate">
+              {categoryName}
+            </span>
+          </span>
+        </div>
+
         {cloth.image ? (
           <img
             src={cloth.image}
@@ -72,24 +120,23 @@ export default function ClothCard({ cloth, isSelectMode = false, selected = fals
           />
         ) : (
           <div className="flex flex-col items-center justify-center gap-3 w-full h-full p-4">
-            {/* Color swatch */}
             <div className={`status-ring ${status.ringClass}`}>
               <div
-                className="w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600"
-                style={{ backgroundColor: cloth.color || '#e5e7eb' }}
-                aria-label="Color swatch"
-                title={cloth.color || 'No color'}
-              />
+                className="w-16 h-16 rounded-full border border-white/50 dark:border-black/30 flex items-center justify-center text-2xl shadow-inner"
+                style={{ backgroundColor: colorValue }}
+                aria-label={`Color swatch: ${colorLabel}`}
+                title={colorLabel}
+              >
+                <span className="leading-none drop-shadow-sm">
+                  {categoryIcon}
+                </span>
+              </div>
             </div>
-            {/* Category icon: fallback to Shirt */}
-            <Shirt size={28} className="text-gray-500 dark:text-gray-300" />
+            <span className="text-sm text-gray-600 dark:text-gray-300 font-medium">
+              {categoryName}
+            </span>
           </div>
         )}
-
-        {/* Status badge */}
-        <div className="absolute top-2 left-2">
-          <span className={status.tagClass}>{status.label}</span>
-        </div>
 
         {/* Favorite toggle */}
         <button
@@ -98,9 +145,17 @@ export default function ClothCard({ cloth, isSelectMode = false, selected = fals
             e.stopPropagation();
             updateCloth(cloth.id, { favorite: !cloth.favorite });
           }}
-          aria-label={cloth.favorite ? 'Remove from favorites' : 'Add to favorites'}
+          aria-label={
+            cloth.favorite ? "Remove from favorites" : "Add to favorites"
+          }
         >
-          <Heart className={`w-4 h-4 ${cloth.favorite ? 'fill-current text-red-500' : 'text-gray-500 dark:text-gray-300'}`} />
+          <Heart
+            className={`w-4 h-4 ${
+              cloth.favorite
+                ? "fill-current text-red-500"
+                : "text-gray-500 dark:text-gray-300"
+            }`}
+          />
         </button>
 
         {/* Selection checkbox overlay */}
@@ -116,28 +171,19 @@ export default function ClothCard({ cloth, isSelectMode = false, selected = fals
           </div>
         )}
       </div>
-
       <div className="p-3 space-y-1">
-        <h4 className="font-semibold truncate text-gray-900 dark:text-gray-100">{cloth.name}</h4>
+        <h4 className="font-semibold truncate text-gray-900 dark:text-gray-100">
+          {cloth.name}
+        </h4>
         <p className="text-xs text-gray-600 dark:text-gray-300">
-          Worn {cloth.currentWearCount ?? 0} {cloth.currentWearCount === 1 ? 'time' : 'times'}
+          Worn {cloth.currentWearCount ?? 0} {cloth.currentWearCount === 1 ? "time" : "times"}
         </p>
+        {costPerWearLabel && (
+          <p className="text-xs font-medium text-primary-deep dark:text-primary-bright">
+            {costPerWearLabel}
+          </p>
+        )}
       </div>
-
-      {/* Category badge (top-right overlay) */}
-      {(() => {
-        const cat = categories.find((c) => c.id === cloth.categoryId)
-        if (!cat) return null
-        const icon = cat.icon || '👕'
-        return (
-          <div className="absolute top-2 right-2 pointer-events-none">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-white/90 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 shadow-sm">
-              <span className="text-base leading-none">{icon}</span>
-              <span className="leading-none max-w-[8rem] truncate">{cat.name}</span>
-            </span>
-          </div>
-        )
-      })()}
     </motion.button>
-  )
+  );
 }

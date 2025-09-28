@@ -39,7 +39,7 @@ export const ClothService = {
       brand: '',
       material: '',
       season: '',
-      cost: 0,
+      cost: clothData?.cost != null ? Number(clothData.cost) : 0,
       purchaseDate: null,
       requiresPressing: false,
       favorite: false,
@@ -57,9 +57,14 @@ export const ClothService = {
   async update(id, updates) {
     let clothes = await this.getAll();
     let updatedCloth = null;
+    const normalizedUpdates = { ...updates };
+    if (Object.prototype.hasOwnProperty.call(normalizedUpdates, 'cost')) {
+      const parsedCost = Number(normalizedUpdates.cost);
+      normalizedUpdates.cost = Number.isFinite(parsedCost) ? parsedCost : 0;
+    }
     const newClothes = clothes.map(c => {
       if (c.id === id) {
-        updatedCloth = { ...c, ...updates };
+        updatedCloth = { ...c, ...normalizedUpdates };
         return updatedCloth;
       }
       return c;

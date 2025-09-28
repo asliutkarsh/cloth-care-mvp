@@ -10,6 +10,7 @@ export const useCalendarStore = create((set, get) => ({
   // =================================================================
   activities: {}, // Activities grouped by date for fast lookups
   outfits: [],
+  clothes: [],
   cleanClothes: [],
   isCalendarInitialized: false,
 
@@ -22,10 +23,10 @@ export const useCalendarStore = create((set, get) => ({
    */
   fetchAll: async () => {
     // Fetch data in parallel
-    const [allActivities, allOutfits, cleanClothes] = await Promise.all([
+    const [allActivities, allOutfits, allClothes] = await Promise.all([
       ActivityLogService.getAll(),
       OutfitService.getAll(),
-      ClothService.getCleanClothes(),
+      ClothService.getAll(),
     ]);
 
     // Group activities by date
@@ -36,9 +37,12 @@ export const useCalendarStore = create((set, get) => ({
       return acc;
     }, {});
 
+    const cleanClothes = allClothes.filter(cloth => cloth.status === ClothService.STATUSES.CLEAN);
+
     set({
       activities: groupedActivities,
       outfits: allOutfits,
+      clothes: allClothes,
       cleanClothes,
       isCalendarInitialized: true,
     });
@@ -64,21 +68,36 @@ export const useCalendarStore = create((set, get) => ({
    * A helper function to get full details for a specific activity log.
    */
   getActivityDetails: (activity) => {
-    const { outfits } = get(); // Get outfits from the store's state
+    const { outfits, clothes } = get(); // Get outfits and clothes from the store's state
     if (activity.type === 'outfit') {
       const outfit = outfits.find(o => o.id === activity.outfitId);
-      // In a real app, you might want to fetch clothes details here if not already loaded
+      const outfitClothes = (outfit?.clothIds || [])
+        .map(clothId => clothes.find(c => c.id === clothId))
+        .filter(Boolean);
       return {
-        name: outfit?.name || 'Deleted Outfit',
-        items: outfit?.clothIds.length ? `${outfit.clothIds.length} items` : 'No items',
+        type: 'outfit',
+        title: outfit?.name || 'Deleted Outfit',
+        subtitle: outfitClothes.length ? `${outfitClothes.length} item${outfitClothes.length === 1 ? '' : 's'}` : 'No items',
+        items: outfitClothes,
       };
-    } else {
-      // For individual clothes, you'd look them up similarly
+    } else if (activity.type === 'individual') {
+      const involvedClothes = (activity.clothIds || [])
+        .map(clothId => clothes.find(c => c.id === clothId))
+        .filter(Boolean);
       return {
-        name: 'Individual Items',
-        items: `${activity.clothIds.length} items`,
+        type: 'individual',
+        title: involvedClothes.length ? `${involvedClothes.length} item${involvedClothes.length === 1 ? '' : 's'} worn` : 'No items',
+        subtitle: involvedClothes.map(c => c.name).join(', ') || 'Select items removed',
+        items: involvedClothes,
       };
     }
+
+    return {
+      type: activity.type,
+      title: 'Unknown activity',
+      subtitle: 'This entry references missing data',
+      items: [],
+    };
   },
 
     deleteActivity: async (activityId) => {

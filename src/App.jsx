@@ -15,6 +15,7 @@ import {
   CategoryManagementPage,
   ClothDetailPage,
   OutfitDetailPage,
+  Insights,
 } from './pages'
 import { AuthProvider } from './context/AuthProvider'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -56,17 +57,16 @@ export default function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/insights" element={<Insights />} />
             <Route path="/wardrobe" element={<Wardrobe />} />
             <Route
               path="/wardrobe/cloth/:clothId"
               element={<ClothDetailPage />}
-            />{' '}
+            />
             <Route
               path="/wardrobe/outfit/:outfitId"
               element={<OutfitDetailPage />}
-            />{' '}
-            {/* Add this route */}
-            // Add this route
+            />
             <Route path="/laundry" element={<Laundry />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/calendar" element={<Calendar />} />

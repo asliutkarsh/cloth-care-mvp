@@ -9,6 +9,7 @@ import { Button } from '../components/ui';
 import { PlusCircle, BookPlus, Shirt, Layers, WashingMachine } from 'lucide-react';
 import { motion } from 'framer-motion';
 import DashboardSkeleton from '../components/skeleton/DashboardSkeleton';
+import ActivityItem from '../components/dashboard/ActivityItem';
 
 // Reusable Stat Card for displaying key metrics
 const StatCard = ({ icon, value, label, onClick }) => (

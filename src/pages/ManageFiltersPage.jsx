@@ -24,10 +24,12 @@ export default function ManageFiltersPage() {
   useEffect(() => {
     if (!filterChipSettings) fetchPreferences()
     if (filterChipSettings) {
-      setClothesSet(new Set(filterChipSettings.clothes || []))
-      setOutfitsSet(new Set(filterChipSettings.outfits || []))
+      const clothesPref = filterChipSettings.clothes || []
+      const outfitsPref = filterChipSettings.outfits || []
+      setClothesSet(clothesPref.length ? new Set(clothesPref) : new Set(parentCategories.map(c => c.id)))
+      setOutfitsSet(new Set(outfitsPref))
     }
-  }, [filterChipSettings])
+  }, [filterChipSettings, parentCategories])
 
   const toggleClothes = (id) => {
     setClothesSet(prev => {

@@ -10,6 +10,7 @@ export { OutfitService } from "./outfitService.js";
 export { LaundryService } from "./laundryService.js";
 export { ActivityLogService } from "./activityLogService.js";
 export { AnalyticsService } from "./analyticsService.js";
+export { InsightsService } from "./insightsService.js";
 export { SetupService } from "./setupService.js";
 
 // --- User & Auth Services ---

@@ -6,8 +6,11 @@ export default function Modal({ open, onClose, title, children, footer, size = '
     md: 'max-w-md',
     lg: 'max-w-lg',
     xl: 'max-w-2xl',
+    '2xl': 'max-w-3xl',
+    '3xl': 'max-w-4xl',
     full: 'max-w-full',
   };
+  const panelSizeClass = sizes[size] || sizes.md;
 
   return (
     <AnimatePresence>
@@ -27,7 +30,7 @@ export default function Modal({ open, onClose, title, children, footer, size = '
             <motion.div
               role="dialog"
               aria-modal="true"
-              className={`w-full sm:w-auto sm:${sizes[size]} bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-xl border border-white/10 dark:border-gray-800 flex flex-col max-h-[95vh]`}
+              className={`w-full sm:w-auto sm:${panelSizeClass} bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-xl border border-white/10 dark:border-gray-800 flex flex-col max-h-[95vh]`}
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 40, opacity: 0 }}

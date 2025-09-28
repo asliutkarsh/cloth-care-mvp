@@ -1,6 +1,6 @@
 // src/stores/useAuthStore.js
 import { create } from 'zustand';
-import { AuthService } from '../services';
+import { AuthService, SetupService } from '../services';
 
 export const useAuthStore = create((set, get) => ({
   user: null,
@@ -51,8 +51,12 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  logout: async () => {
+  logout: async (options = {}) => {
+    const { preserveData = true } = options;
     await AuthService.logout();
+    if (!preserveData) {
+      await SetupService.resetApp(true);
+    }
     set({ user: null });
   },
 }));

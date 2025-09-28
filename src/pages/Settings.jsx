@@ -15,18 +15,20 @@ export default function Settings() {
   const { exportData, importData, resetApp, preferences, updatePreference, fetchPreferences } = useSettingsStore();
   const { logout } = useAuthStore();
   const [confirmState, setConfirmState] = useState({ open: false });
-  const [viewMode, setViewMode] = useState(preferences?.wardrobeDefaults?.viewMode || 'grid');
+  const [viewMode, setViewMode] = useState('grid');
+  const [sortBy, setSortBy] = useState('newest');
 
   useEffect(() => {
     if (!preferences) {
       fetchPreferences();
-      return <SettingsSkeleton />;
     }
   }, [preferences, fetchPreferences]);
 
   useEffect(() => {
-    if (preferences?.wardrobeDefaults?.viewMode) {
-      setViewMode(preferences.wardrobeDefaults.viewMode);
+    if (preferences?.wardrobeDefaults) {
+      const defaults = preferences.wardrobeDefaults;
+      if (defaults.viewMode) setViewMode(defaults.viewMode);
+      if (defaults.sortBy) setSortBy(defaults.sortBy);
     }
   }, [preferences]);
 
@@ -41,12 +43,15 @@ export default function Settings() {
       isDanger: true,
       onConfirm: async () => {
         await resetApp();
-        // After reset, log the user out and send to landing
-        await logout();
+        await logout({ preserveData: false });
         navigate('/');
       },
     });
   };
+
+  if (!preferences) {
+    return <SettingsSkeleton />;
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-4 pb-24 sm:p-6 md:p-8">
@@ -90,7 +95,7 @@ export default function Settings() {
                     className={`px-3 py-1.5 text-sm ${viewMode === 'grid' ? 'bg-primary-activeBg text-white' : ''}`}
                     onClick={async () => {
                       setViewMode('grid');
-                      await updatePreference('wardrobeDefaults', { ...(preferences?.wardrobeDefaults||{}), viewMode: 'grid' });
+                      await updatePreference('wardrobeDefaults', { ...(preferences?.wardrobeDefaults||{}), viewMode: 'grid', sortBy });
                     }}
                     type="button"
                   >
@@ -100,13 +105,34 @@ export default function Settings() {
                     className={`px-3 py-1.5 text-sm ${viewMode === 'list' ? 'bg-primary-activeBg text-white' : ''}`}
                     onClick={async () => {
                       setViewMode('list');
-                      await updatePreference('wardrobeDefaults', { ...(preferences?.wardrobeDefaults||{}), viewMode: 'list' });
+                      await updatePreference('wardrobeDefaults', { ...(preferences?.wardrobeDefaults||{}), viewMode: 'list', sortBy });
                     }}
                     type="button"
                   >
                     List
                   </button>
                 </div>
+              </div>
+            </div>
+            <div className="p-3 rounded-md border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="font-medium">Default Sort</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Applied when you open your wardrobe</div>
+                </div>
+                <select
+                  value={sortBy}
+                  onChange={async (e) => {
+                    const next = e.target.value;
+                    setSortBy(next);
+                    await updatePreference('wardrobeDefaults', { ...(preferences?.wardrobeDefaults||{}), viewMode, sortBy: next });
+                  }}
+                  className="rounded-md border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm bg-white dark:bg-gray-900"
+                >
+                  <option value="newest">Newest</option>
+                  <option value="name">Name</option>
+                  <option value="mostWorn">Most worn</option>
+                </select>
               </div>
             </div>
           </div>

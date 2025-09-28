@@ -30,6 +30,20 @@ const DEFAULT_PREFERENCES = {
     viewMode: 'grid',
     sortBy: 'newest',
   },
+  insightsModules: {
+    selected: [
+      'overviewCards',
+      'categoryBreakdown',
+      'colorPalette',
+      'brandDistribution',
+      'topGoToItems',
+      'forgottenFavorites',
+      'valueLeaders',
+      'sustainabilityScore',
+      'financialOverview',
+      'closetGhosts',
+    ],
+  },
 };
 
 export const PreferenceService = {
@@ -65,6 +79,10 @@ export const PreferenceService = {
       wardrobeDefaults: {
         ...currentPrefs.wardrobeDefaults,
         ...newPrefs.wardrobeDefaults,
+      },
+      insightsModules: {
+        ...currentPrefs.insightsModules,
+        ...newPrefs.insightsModules,
       },
       outfitTagStats: {
         ...currentPrefs.outfitTagStats,
