@@ -36,6 +36,9 @@ export const ActivityLogService = {
       date: new Date().toISOString().split('T')[0],
       notes: '',
       ...activityData, // User-provided data overrides defaults
+      time:
+        activityData?.time ||
+        `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`,
       createdAt: new Date().toISOString(),
     };
 

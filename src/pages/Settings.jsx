@@ -8,6 +8,7 @@ import { Button, SettingsMenuItem } from '../components/ui';
 import ConfirmationModal from '../components/modal/ConfirmationModal';
 import SettingsSkeleton from '../components/skeleton/SettingsSkeleton';
 import { MIN_MODULES, MAX_MODULES } from '../components/insights/insightsConfig';
+import { useToast } from '../context/ToastProvider.jsx';
 
 
 
@@ -18,6 +19,8 @@ export default function Settings() {
   const [confirmState, setConfirmState] = useState({ open: false });
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('newest');
+  const { addToast } = useToast();
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     if (!preferences) {
@@ -44,9 +47,19 @@ export default function Settings() {
       confirmText: 'Yes, Reset Everything',
       isDanger: true,
       onConfirm: async () => {
-        await resetApp();
-        await logout({ preserveData: false });
-        navigate('/');
+        if (isResetting) return;
+        setIsResetting(true);
+        try {
+          await resetApp();
+          addToast('App data cleared successfully. Please sign in again.', { type: 'success' });
+          await logout({ preserveData: false });
+          navigate('/');
+        } catch (error) {
+          console.error('Failed to reset app data', error);
+          addToast('Reset failed. Please try again.', { type: 'error' });
+        } finally {
+          setIsResetting(false);
+        }
       },
     });
   };
@@ -153,12 +166,44 @@ export default function Settings() {
 
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Data & Privacy</h3>
-            <SettingsMenuItem title="Export Data" subtitle="Download your wardrobe data" onClick={exportData} />
             <SettingsMenuItem title="Import Data" subtitle="Restore from a backup file" onClick={importData} />
             <SettingsMenuItem title="Reset App Data" subtitle="Clear all data (cannot be undone)" onClick={handleResetApp} danger />
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        open={confirmState.open}
+        onClose={() => !isResetting && onConfirmClose()}
+        onConfirm={confirmState.onConfirm}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        isDanger={confirmState.isDanger}
+      />
+      {isResetting && (
+        <ConfirmationModal
+          open={isResetting}
+          onClose={() => setIsResetting(false)}
+          onConfirm={async () => {
+            try {
+              await resetApp();
+              addToast('App data cleared successfully. Please sign in again.', { type: 'success' });
+              await logout({ preserveData: false });
+              navigate('/');
+            } catch (error) {
+              console.error('Failed to reset app data', error);
+              addToast('Reset failed. Please try again.', { type: 'error' });
+            } finally {
+              setIsResetting(false);
+            }
+          }}
+          title="Resetting app data..."
+          message="Please wait while we clear your data..."
+          confirmText="Reset"
+          isDanger={true}
+        />
+      )}
     </div>
   );
 }

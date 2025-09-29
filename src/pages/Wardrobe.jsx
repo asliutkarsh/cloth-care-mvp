@@ -125,7 +125,7 @@ export default function Wardrobe() {
                   value="clothes"
                   className={`${
                     activeTab === 'clothes'
-                      ? 'text-white dark:text-red'
+                      ? 'bg-gray-900 text-white shadow-sm dark:bg-primary-deep/60 dark:text-white'
                       : 'text-gray-600 dark:text-gray-400'
                   } py-2 px-3 sm:px-4 text-sm sm:text-base rounded-lg transition-all whitespace-nowrap`}
                 >
@@ -135,7 +135,7 @@ export default function Wardrobe() {
                   value="outfits"
                   className={`${
                     activeTab === 'outfits'
-                      ? 'text-white dark:text-black'
+                      ? 'bg-gray-900 text-white shadow-sm dark:bg-primary-deep/60 dark:text-white'
                       : 'text-gray-600 dark:text-gray-400'
                   } py-2 px-3 sm:px-4 text-sm sm:text-base rounded-lg transition-all whitespace-nowrap`}
                 >

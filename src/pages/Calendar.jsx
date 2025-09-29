@@ -7,6 +7,14 @@ import {CalendarHeader, WeekdayHeader, CalendarGrid, ActivityLog } from '../comp
 import { BookOpenCheck } from 'lucide-react';
 import CalendarSkeleton from '../components/skeleton/CalendarSkeleton';
 
+const formatDateKey = (date) => {
+  const d = date instanceof Date ? date : new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function Calendar() {
   // --- Get data and actions from Zustand stores ---
   const {
@@ -56,7 +64,10 @@ export default function Calendar() {
   }, [fetchCalendarData, dateFromParams, searchParams, setSearchParams, parseDateString]);
 
   const handleAddActivity = async (activityData) => {
-    await addActivity(activityData, selectedDate);
+    const parsedDate = parseDateString(activityData?.date);
+    const targetDate = parsedDate || selectedDate;
+    const dateKey = formatDateKey(targetDate);
+    await addActivity({ ...activityData, date: dateKey });
     setShowAddModal(false);
   };
   
@@ -78,6 +89,9 @@ export default function Calendar() {
   if (!isCalendarInitialized) {
     return <CalendarSkeleton />;
   }
+
+  const selectedDateKey = formatDateKey(selectedDate);
+  const activitiesForSelectedDate = activities[selectedDateKey] || [];
 
   return (
     <div className="max-w-6xl mx-auto p-4 pb-24">
@@ -106,7 +120,7 @@ export default function Calendar() {
         <div className="lg:col-span-1">
           <ActivityLog
             selectedDate={selectedDate}
-            activitiesForDay={activities[selectedDate.toISOString().split('T')[0]] || []}
+            activitiesForDay={activitiesForSelectedDate}
             getActivityDetails={getActivityDetails}
             onAddActivity={() => setShowAddModal(true)}
           />
@@ -117,6 +131,7 @@ export default function Calendar() {
         open={showAddModal}
         onClose={() => setShowAddModal(false)}
         date={selectedDate}
+        time={null}
         outfits={outfits}
         clothes={cleanClothes}
         categories={categories}

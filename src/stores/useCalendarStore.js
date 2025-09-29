@@ -2,7 +2,26 @@
 import { create } from 'zustand';
 import { ActivityLogService, OutfitService, ClothService } from '../services';
 
-const formatDate = (date) => date.toISOString().split('T')[0];
+const normalizeDate = (value) => {
+  if (!value) return new Date();
+  if (value instanceof Date) return value;
+  if (typeof value === 'string') {
+    const parts = value.split('-').map(Number);
+    if (parts.length === 3 && parts.every((n) => Number.isFinite(n))) {
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+};
+
+const formatDate = (value) => {
+  const date = normalizeDate(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 export const useCalendarStore = create((set, get) => ({
   // =================================================================
@@ -31,9 +50,9 @@ export const useCalendarStore = create((set, get) => ({
 
     // Group activities by date
     const groupedActivities = allActivities.reduce((acc, activity) => {
-      const date = activity.date;
-      if (!acc[date]) acc[date] = [];
-      acc[date].push(activity);
+      const key = formatDate(activity.date || activity.createdAt);
+      if (!acc[key]) acc[key] = [];
+      acc[key].push({ ...activity, date: key });
       return acc;
     }, {});
 
@@ -51,10 +70,11 @@ export const useCalendarStore = create((set, get) => ({
   /**
    * Adds a new activity and refreshes the data.
    */
-  addActivity: async (activityData, date) => {
+  addActivity: async (activityData) => {
+    const dateKey = formatDate(activityData?.date);
     await ActivityLogService.logActivity({
       ...activityData,
-      date: formatDate(date),
+      date: dateKey,
     });
     // After adding, refresh all calendar data to stay in sync
     await get().fetchAll();

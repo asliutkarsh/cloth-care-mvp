@@ -6,22 +6,44 @@ import Input from '../ui/Input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/Tabs';
 import { useToast } from '../../context/ToastProvider.jsx';
 
-export default function AddActivityModal({ open, onClose, date, outfits, clothes, categories, onSubmit }) {
+const formatDateInput = (value) => {
+  if (!value) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  if (typeof value === 'string') return value;
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getDefaultTime = (provided) => {
+  if (provided) return provided;
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+};
+
+export default function AddActivityModal({ open, onClose, date, time, outfits, clothes, categories, onSubmit }) {
   const { createOutfit } = useWardrobeStore();
   const [activeTab, setActiveTab] = useState('outfits');
   const [selectedOutfitId, setSelectedOutfitId] = useState(null);
   const [selectedClothIds, setSelectedClothIds] = useState([]);
-  const [activityDate, setActivityDate] = useState(date);
+  const [activityDate, setActivityDate] = useState(formatDateInput(date));
   const [saveAsOutfit, setSaveAsOutfit] = useState(false);
   const [newOutfitName, setNewOutfitName] = useState('');
   const [outfitSearch, setOutfitSearch] = useState('');
   const [clothSearch, setClothSearch] = useState('');
   const scrollContainerRef = useRef(null);
   const { addToast } = useToast();
+  const [activityTime, setActivityTime] = useState(getDefaultTime(time));
 
   useEffect(() => {
     if (open) {
-      setActivityDate(date);
+      setActivityDate(formatDateInput(date));
       setActiveTab('outfits');
       setSelectedOutfitId(null);
       setSelectedClothIds([]);
@@ -29,11 +51,12 @@ export default function AddActivityModal({ open, onClose, date, outfits, clothes
       setNewOutfitName('');
       setOutfitSearch('');
       setClothSearch('');
+      setActivityTime(getDefaultTime(time));
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = 0;
       }
     }
-  }, [open, date]);
+  }, [open, date, time]);
 
   useEffect(() => {
     if (activeTab === 'outfits') {
@@ -87,11 +110,15 @@ export default function AddActivityModal({ open, onClose, date, outfits, clothes
   };
 
   const handleDateChange = (e) => {
-    const [year, month, day] = e.target.value.split('-').map(p => parseInt(p, 10));
-    setActivityDate(new Date(year, month - 1, day));
+    setActivityDate(e.target.value);
   };
   
   const handleSubmit = async () => {
+    if (!activityDate) {
+      addToast('Please select a date for this activity.', { type: 'error' });
+      return;
+    }
+
     let payload = null;
     if (activeTab === 'outfits' && selectedOutfitId) {
       payload = { type: 'outfit', outfitId: selectedOutfitId };
@@ -113,8 +140,12 @@ export default function AddActivityModal({ open, onClose, date, outfits, clothes
       }
     }
     if (payload) {
+      if (!activityTime) {
+        addToast('Please select a time for this activity.', { type: 'error' });
+        return;
+      }
       try {
-        await onSubmit(payload);
+        await onSubmit({ ...payload, time: activityTime, date: activityDate });
         addToast('Activity logged successfully!', { type: 'success' });
       } catch (error) {
         console.error('Failed to log activity', error);
@@ -124,6 +155,8 @@ export default function AddActivityModal({ open, onClose, date, outfits, clothes
   };
 
   const isSubmitDisabled = 
+    !activityDate ||
+    !activityTime ||
     (activeTab === 'outfits' && !selectedOutfitId) ||
     (activeTab === 'clothes' && selectedClothIds.length === 0) ||
     (activeTab === 'clothes' && saveAsOutfit && !newOutfitName);
@@ -165,9 +198,21 @@ export default function AddActivityModal({ open, onClose, date, outfits, clothes
             <Input
               id="activity-date"
               type="date"
-              value={activityDate.toISOString().split('T')[0]}
+              value={activityDate}
               onChange={handleDateChange}
               className="sm:w-48"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="activity-time">
+              Time
+            </label>
+            <Input
+              id="activity-time"
+              type="time"
+              value={activityTime}
+              onChange={(e) => setActivityTime(e.target.value)}
+              className="sm:w-36"
             />
           </div>
           <Button onClick={handleSubmit} disabled={isSubmitDisabled} className="sm:min-w-[140px]">
