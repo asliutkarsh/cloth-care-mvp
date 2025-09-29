@@ -11,10 +11,12 @@ import {
   Tag as TagIcon,
   Star,
   Shirt,
+  Droplet,
 } from 'lucide-react';
 import { Button } from '../components/ui';
 import OutfitModal from '../components/modal/OutfitModal';
 import ConfirmationModal from '../components/modal/ConfirmationModal';
+import { useToast } from '../context/ToastProvider.jsx';
 
 const StatCard = ({ icon, label, value }) => (
   <div className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/80 dark:bg-gray-900/70 p-4 shadow-sm">
@@ -61,8 +63,9 @@ const clothStatusText = (cloth) => {
 export default function OutfitDetailPage() {
   const navigate = useNavigate();
   const { outfitId } = useParams();
-  const { outfits, clothes, updateOutfit, removeOutfit, isInitialized } = useWardrobeStore();
+  const { outfits, clothes, updateOutfit, removeOutfit, markOutfitDirty, isInitialized } = useWardrobeStore();
   const { addActivity } = useCalendarStore();
+  const { addToast } = useToast();
 
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [isConfirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -149,6 +152,16 @@ export default function OutfitDetailPage() {
               <Button variant="secondary" className="flex items-center gap-2" onClick={() => updateOutfit(outfitId, { favorite: !outfit.favorite })}>
                 <Star className={`h-4 w-4 ${outfit.favorite ? 'fill-current text-amber-500' : ''}`} />
                 {outfit.favorite ? 'Remove favourite' : 'Mark favourite'}
+              </Button>
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2"
+                onClick={async () => {
+                  await markOutfitDirty(outfitId);
+                  addToast(`${outfit.name} items marked as dirty.`, { type: 'success' });
+                }}
+              >
+                <Droplet className="h-4 w-4" /> Mark dirty
               </Button>
               <Button
                 className="flex items-center gap-2"

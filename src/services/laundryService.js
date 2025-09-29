@@ -64,6 +64,25 @@ export const LaundryService = {
     };
   },
 
+  async markDirty(clothIds) {
+    const marked = [];
+    for (const clothId of clothIds) {
+      const cloth = await ClothService.getById(clothId);
+      if (cloth && cloth.status !== ClothService.STATUSES.DIRTY) {
+        const updated = await ClothService.update(clothId, {
+          status: ClothService.STATUSES.DIRTY,
+        });
+        if (updated) {
+          marked.push(updated);
+        }
+      }
+    }
+    return {
+      totalMarked: marked.length,
+      marked,
+    };
+  },
+
   /**
    * Gets the current counts and lists of clothes needing laundry services.
    */

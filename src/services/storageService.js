@@ -6,6 +6,7 @@ export const StorageService = {
     CATEGORIES: `${PREFIX}categories`,
     CLOTHES: `${PREFIX}clothes`,
     OUTFITS: `${PREFIX}outfits`,
+    TRIPS: `${PREFIX}trips`,
     ACTIVITY_LOGS: `${PREFIX}activity_logs`,
     NOTIFICATION_SETTINGS: `${PREFIX}notifications`,
     AUDIT_LOGS: `${PREFIX}audit_logs`,

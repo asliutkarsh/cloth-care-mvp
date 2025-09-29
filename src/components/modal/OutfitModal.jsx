@@ -5,6 +5,7 @@ import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import { BadgePlus, Tag, Sparkles, Trash2 } from 'lucide-react';
+import { useToast } from '../../context/ToastProvider.jsx';
 
 const tagFromInput = (value = '') =>
   value
@@ -80,6 +81,7 @@ const CanvasChip = ({ cloth, onRemove }) => (
 export default function OutfitModal({ open, onClose, onSubmit, initialData = null }) {
   const { clothes, categories = [] } = useWardrobeStore();
   const { outfitTagSuggestions = [], fetchPreferences } = useSettingsStore();
+  const { addToast } = useToast();
 
   const [name, setName] = useState('');
   const [tagsInput, setTagsInput] = useState('');
@@ -128,10 +130,25 @@ export default function OutfitModal({ open, onClose, onSubmit, initialData = nul
     setSelectedClothIds((prev) => prev.filter((x) => x !== id));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    onSubmit({ name, clothIds: selectedClothIds, tags: tagList });
-    onClose();
+    if (!name.trim()) {
+      addToast('Please give the outfit a name.', { type: 'error' });
+      return;
+    }
+    if (!selectedClothIds.length) {
+      addToast('Add at least one item to the outfit.', { type: 'error' });
+      return;
+    }
+
+    try {
+      await onSubmit({ name: name.trim(), clothIds: selectedClothIds, tags: tagList });
+      addToast(initialData ? 'Outfit updated!' : 'Outfit created!', { type: 'success' });
+      onClose();
+    } catch (error) {
+      console.error('Failed to save outfit', error);
+      addToast('Could not save outfit. Please try again.', { type: 'error' });
+    }
   };
 
   const tagSuggestions = useMemo(() => {

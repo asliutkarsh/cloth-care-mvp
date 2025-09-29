@@ -22,3 +22,4 @@ export { BackupService } from "./backupService.js";
 export { SearchService } from "./searchService.js";
 export { PreferenceService } from "./preferenceService.js";
 export { AuditLogService } from "./auditLogService.js"; // From original files
+export { TripService } from "./tripService.js";

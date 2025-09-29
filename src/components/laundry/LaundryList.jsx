@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { Button } from '../ui';
 import { Shirt, Check } from 'lucide-react';
+import { useToast } from '../../context/ToastProvider.jsx';
 
 export default function LaundryList({ title, items, actionText, onAction }) {
   const [selectedIds, setSelectedIds] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { addToast } = useToast();
 
   const toggleSelection = (id) => {
     setSelectedIds(prev =>
@@ -11,9 +14,22 @@ export default function LaundryList({ title, items, actionText, onAction }) {
     );
   };
 
-  const handleActionClick = () => {
-    onAction(selectedIds);
-    setSelectedIds([]); // Clear selection after action
+  const handleActionClick = async () => {
+    if (!selectedIds.length) return;
+    setIsProcessing(true);
+    try {
+      await onAction(selectedIds);
+      addToast(
+        title.includes('Press') ? 'Items pressed successfully!' : 'Laundry updated successfully!',
+        { type: 'success' }
+      );
+      setSelectedIds([]);
+    } catch (error) {
+      console.error('Laundry action failed', error);
+      addToast('Could not update laundry. Please try again.', { type: 'error' });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -40,11 +56,11 @@ export default function LaundryList({ title, items, actionText, onAction }) {
           </div>
           <Button
             onClick={handleActionClick}
-            disabled={selectedIds.length === 0}
+            disabled={selectedIds.length === 0 || isProcessing}
             fullWidth
             className="mt-4"
           >
-            {actionText} ({selectedIds.length})
+            {isProcessing ? 'Working…' : `${actionText} (${selectedIds.length})`}
           </Button>
         </>
       ) : (

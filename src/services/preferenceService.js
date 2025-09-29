@@ -34,14 +34,10 @@ const DEFAULT_PREFERENCES = {
     selected: [
       'overviewCards',
       'categoryBreakdown',
-      'colorPalette',
-      'brandDistribution',
       'topGoToItems',
-      'forgottenFavorites',
-      'valueLeaders',
       'sustainabilityScore',
       'financialOverview',
-      'closetGhosts',
+      'valueLeaders',
     ],
   },
 };

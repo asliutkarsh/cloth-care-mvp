@@ -5,6 +5,7 @@ import Button from '../ui/Button'
 import Input from '../ui/Input'
 import Select from '../ui/Select'
 import { Camera, Upload, X, Loader2 } from 'lucide-react'
+import { useToast } from '../../context/ToastProvider.jsx'
 
 const colorPresets = [
   { name: 'Charcoal', value: '#1f2933' },
@@ -36,6 +37,7 @@ const flattenCategories = (categoryList = [], level = 0) => {
 
 export default function AddClothModal({ open, onClose }) {
   const { categories = [], addCloth } = useWardrobeStore()
+  const { addToast } = useToast()
 
   const [form, setForm] = useState({
     name: '',
@@ -129,7 +131,11 @@ export default function AddClothModal({ open, onClose }) {
     }
     try {
       await addCloth(payload)
+      addToast('Item added successfully!', { type: 'success' })
       onClose()
+    } catch (error) {
+      console.error('Failed to add cloth item', error)
+      addToast('Could not add item. Please try again.', { type: 'error' })
     } finally {
       setIsSaving(false)
     }

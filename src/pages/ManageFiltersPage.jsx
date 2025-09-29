@@ -9,27 +9,50 @@ import { Button } from '../components/ui'
 export default function ManageFiltersPage() {
   const navigate = useNavigate()
   const { filterChipSettings, outfitTagSuggestions, fetchPreferences, updateFilterChipSettings } = useSettingsStore()
-  const { getParentCategories, getUniqueOutfitTags } = useWardrobeStore()
+  const categories = useWardrobeStore(state => state.categories)
+  const outfits = useWardrobeStore(state => state.outfits)
 
   const [clothesSet, setClothesSet] = useState(new Set())
   const [outfitsSet, setOutfitsSet] = useState(new Set())
 
-  const parentCategories = getParentCategories()
+  const parentCategories = useMemo(() => {
+    return (categories || []).filter((category) => !category.parentId)
+  }, [categories])
+
   const uniqueOutfitTags = useMemo(() => {
-    const fromData = getUniqueOutfitTags()
-    const fromPrefs = outfitTagSuggestions || []
-    return Array.from(new Set([...(fromData || []), ...fromPrefs]))
-  }, [getUniqueOutfitTags, outfitTagSuggestions])
+    const fromData = new Set()
+    for (const outfit of outfits || []) {
+      for (const tag of outfit?.tags || []) {
+        fromData.add(tag)
+      }
+    }
+    const merged = new Set([...(outfitTagSuggestions || []), ...fromData])
+    return Array.from(merged)
+  }, [outfits, outfitTagSuggestions])
+
+  const setsEqual = (a, b) => {
+    if (a.size !== b.size) return false
+    for (const value of a) {
+      if (!b.has(value)) return false
+    }
+    return true
+  }
 
   useEffect(() => {
-    if (!filterChipSettings) fetchPreferences()
-    if (filterChipSettings) {
-      const clothesPref = filterChipSettings.clothes || []
-      const outfitsPref = filterChipSettings.outfits || []
-      setClothesSet(clothesPref.length ? new Set(clothesPref) : new Set(parentCategories.map(c => c.id)))
-      setOutfitsSet(new Set(outfitsPref))
+    if (!filterChipSettings) {
+      fetchPreferences()
+      return
     }
-  }, [filterChipSettings, parentCategories])
+
+    const clothesPref = filterChipSettings.clothes?.length ? filterChipSettings.clothes : parentCategories.map((c) => c.id)
+    const outfitsPref = filterChipSettings.outfits || []
+
+    const nextClothesSet = new Set(clothesPref)
+    const nextOutfitsSet = new Set(outfitsPref)
+
+    setClothesSet((prev) => (setsEqual(prev, nextClothesSet) ? prev : nextClothesSet))
+    setOutfitsSet((prev) => (setsEqual(prev, nextOutfitsSet) ? prev : nextOutfitsSet))
+  }, [filterChipSettings, parentCategories, fetchPreferences])
 
   const toggleClothes = (id) => {
     setClothesSet(prev => {

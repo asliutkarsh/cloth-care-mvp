@@ -16,6 +16,9 @@ import {
   ClothDetailPage,
   OutfitDetailPage,
   Insights,
+  Trips,
+  TripPlanner,
+  SettingsInsightsPage,
 } from './pages'
 import { AuthProvider } from './context/AuthProvider'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -70,12 +73,15 @@ export default function App() {
             <Route path="/laundry" element={<Laundry />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/calendar" element={<Calendar />} />
+            <Route path="/trips" element={<Trips />} />
+            <Route path="/trips/:tripId" element={<TripPlanner />} />
             <Route path="/settings" element={<Settings />} />
             <Route
               path="/settings/categories"
               element={<CategoryManagementPage />}
             />
             <Route path="/settings/filters" element={<ManageFiltersPage />} />
+            <Route path="/settings/insights" element={<SettingsInsightsPage />} />
           </Route>
 
           {/* --- Not Found Route --- */}

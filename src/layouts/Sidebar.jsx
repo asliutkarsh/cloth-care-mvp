@@ -1,15 +1,26 @@
 // src/layouts/Sidebar.jsx
 
 import { Link, useLocation } from 'react-router-dom';
-import { House, BookOpenCheck, WashingMachine, User, Calendar, Settings } from 'lucide-react';
+import {
+  House,
+  BookOpenCheck,
+  WashingMachine,
+  User,
+  Calendar,
+  Settings,
+  LineChart,
+  Luggage,
+} from 'lucide-react';
 
 const navItems = [
-    { to: '/dashboard', label: 'Dashboard', Icon: House },
-    { to: '/wardrobe', label: 'Wardrobe', Icon: BookOpenCheck },
-    { to: "/calendar", label: "Calendar", Icon: Calendar },
-    { to: '/laundry', label: 'Laundry', Icon: WashingMachine },
-    { to: '/profile', label: 'Profile', Icon: User },
-    { to: '/settings', label: 'Settings', Icon: Settings },
+  { to: '/dashboard', label: 'Dashboard', Icon: House },
+  { to: '/wardrobe', label: 'Wardrobe', Icon: BookOpenCheck },
+  { to: '/calendar', label: 'Calendar', Icon: Calendar },
+  { to: '/laundry', label: 'Laundry', Icon: WashingMachine },
+  { to: '/insights', label: 'Insights', Icon: LineChart },
+  { to: '/trips', label: 'Trips', Icon: Luggage },
+  { to: '/profile', label: 'Profile', Icon: User },
+  { to: '/settings', label: 'Settings', Icon: Settings },
 ];
 
 // Defined outside the component to prevent re-creation on every render.

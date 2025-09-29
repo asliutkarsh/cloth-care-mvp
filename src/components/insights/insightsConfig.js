@@ -114,6 +114,13 @@ export const INSIGHT_MODULES = [
     type: 'list',
   },
   {
+    id: 'versatileHero',
+    title: 'Most versatile piece',
+    description: 'The item appearing in the most outfits.',
+    section: 'value',
+    type: 'highlight',
+  },
+  {
     id: 'financialOverview',
     title: 'Financial overview',
     description: 'Average price, total value, and big-ticket items.',
@@ -144,5 +151,5 @@ export const INSIGHT_MODULES = [
   },
 ];
 
-export const MIN_MODULES = 6;
-export const MAX_MODULES = 10;
+export const MIN_MODULES = 4;
+export const MAX_MODULES = 6;

@@ -33,6 +33,17 @@ export default function Wardrobe() {
   const [isSelectMode, setIsSelectMode] = useState(false)
   const [selectedItems, setSelectedItems] = useState([])
 
+  useEffect(() => {
+    fetchPreferences()
+  }, [fetchPreferences])
+
+  useEffect(() => {
+    if (preferences?.wardrobeDefaults) {
+      setViewMode(preferences.wardrobeDefaults.viewMode || 'grid')
+      setSortBy(preferences.wardrobeDefaults.sortBy || 'newest')
+    }
+  }, [preferences?.wardrobeDefaults])
+
   const flatCategories = useMemo(() => {
     const list = []
     const walk = (nodes = []) => {
@@ -94,8 +105,11 @@ export default function Wardrobe() {
   if (!isInitialized) return <WardrobeSkeleton />
 
   return (
-    <div className="flex relative">
-      <main className="flex-grow max-w-7xl mx-auto p-3 sm:p-4 pb-24 sm:pb-24 md:p-6">
+    <div className="relative">
+      <main
+        className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 pt-4 sm:pt-6 pb-32 sm:pb-36 md:pb-16"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 7rem)' }}
+      >
         <header className="mb-6">
           <h1 className="text-3xl font-bold mb-2">My Wardrobe</h1>
           <p className="text-gray-600 dark:text-gray-400">
@@ -104,9 +118,9 @@ export default function Wardrobe() {
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="flex flex-col gap-3 mb-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <TabsList className="w-full sm:w-auto flex gap-1 sm:gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
+          <div className="flex flex-col gap-4 mb-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+              <TabsList className="w-full md:w-auto flex gap-1 sm:gap-2 overflow-x-auto no-scrollbar pb-1 -mx-2 px-2 md:m-0 md:px-0 scroll-smooth">
                 <TabsTrigger
                   value="clothes"
                   className={`${
@@ -129,15 +143,15 @@ export default function Wardrobe() {
                 </TabsTrigger>
               </TabsList>
 
-              <div className="flex flex-1 items-center gap-2 flex-wrap mt-2 sm:mt-0">
+              <div className="flex flex-1 items-center gap-2 flex-wrap mt-1 md:mt-0">
                 <ExpandableSearch
                   value={searchTerm}
                   onChange={setSearchTerm}
                   placeholder={`Search in ${activeTab}...`}
-                  className="flex-1 min-w-0 w-full sm:w-auto"
+                  className="flex-1 min-w-0 w-full md:w-auto"
                 />
-                <div className="flex items-center gap-2">
-                  <CreateNewMenu />
+                <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start">
+                  <CreateNewMenu className="shrink-0" />
 
                   {activeTab === 'clothes' && (
                     <Button
@@ -159,13 +173,13 @@ export default function Wardrobe() {
                     sortBy={sortBy}
                     onViewChange={(vm) => {
                       setViewMode(vm)
-                      updatePreference('wardrobeDefaults', { ...(preferences?.wardrobeDefaults||{}), viewMode: vm })
+                      updatePreference('wardrobeDefaults', { ...(preferences?.wardrobeDefaults || {}), viewMode: vm })
                     }}
                     onSortChange={(sb) => {
                       setSortBy(sb)
-                      updatePreference('wardrobeDefaults', { ...(preferences?.wardrobeDefaults||{}), sortBy: sb })
+                      updatePreference('wardrobeDefaults', { ...(preferences?.wardrobeDefaults || {}), sortBy: sb })
                     }}
-                    className="w-full sm:w-auto"
+                    className="w-full md:w-auto"
                     showViewToggle={false}
                   />
                 )}
@@ -177,6 +191,7 @@ export default function Wardrobe() {
                 categories={categories}
                 filters={filters}
                 onChange={setFilters}
+                className="-mx-2 px-2 md:mx-0"
               />
             )}
           </div>

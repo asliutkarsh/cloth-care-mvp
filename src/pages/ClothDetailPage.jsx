@@ -17,6 +17,7 @@ import {
 import { Button } from '../components/ui';
 import ClothModal from '../components/modal/ClothModal';
 import ConfirmationModal from '../components/modal/ConfirmationModal';
+import { useToast } from '../context/ToastProvider.jsx';
 
 const statusMeta = {
   clean: { label: 'Clean', tone: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-200' },
@@ -46,7 +47,8 @@ const formatCurrency = (value) => {
 export default function ClothDetailPage() {
   const navigate = useNavigate();
   const { clothId } = useParams();
-  const { clothes, outfits = [], categories = [], updateCloth, removeCloth, isInitialized } = useWardrobeStore();
+  const { clothes, outfits = [], categories = [], updateCloth, removeCloth, markClothesDirty, isInitialized } = useWardrobeStore();
+  const { addToast } = useToast();
 
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [isConfirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -160,6 +162,16 @@ export default function ClothDetailPage() {
               >
                 <Star className={`h-4 w-4 ${cloth.favorite ? 'fill-current text-amber-500' : ''}`} />
                 {cloth.favorite ? 'Remove favourite' : 'Mark favourite'}
+              </Button>
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2"
+                onClick={async () => {
+                  await markClothesDirty([clothId]);
+                  addToast(`${cloth.name} marked as dirty.`, { type: 'success' });
+                }}
+              >
+                <Droplet className="h-4 w-4" /> Mark dirty
               </Button>
               <Button variant="danger" className="flex items-center gap-2" onClick={() => setConfirmDeleteOpen(true)}>
                 <Trash2 className="h-4 w-4" /> Delete item

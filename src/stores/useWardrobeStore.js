@@ -83,6 +83,20 @@ export const useWardrobeStore = create((set, get) => ({
     get().fetchAll()
   },
 
+  markClothesDirty: async (clothIds) => {
+    if (!clothIds?.length) return
+    await LaundryService.markDirty(clothIds)
+    await get().fetchAll()
+  },
+
+  markOutfitDirty: async (outfitId) => {
+    if (!outfitId) return
+    const outfit = await OutfitService.getById(outfitId)
+    if (!outfit?.clothIds?.length) return
+    await LaundryService.markDirty(outfit.clothIds)
+    await get().fetchAll()
+  },
+
   createOutfit: async (outfitData) => {
     await OutfitService.add(outfitData)
     // Refresh the main wardrobe data after creating a new outfit

@@ -131,6 +131,16 @@ export default function Profile() {
           onClick={() => navigate('/calendar')}
         />
         <SettingsMenuItem
+          title="Trips & Packing"
+          subtitle="Plan outfits for upcoming travel"
+          onClick={() => navigate('/trips')}
+        />
+        <SettingsMenuItem
+          title="Wardrobe Insights"
+          subtitle="See your personalised analytics"
+          onClick={() => navigate('/insights')}
+        />
+        <SettingsMenuItem
           title="Settings"
           subtitle="Manage app preferences and data"
           onClick={() => navigate('/settings')}

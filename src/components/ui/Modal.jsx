@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function Modal({ open, onClose, title, children, footer, size = 'md', closeOnBackdrop = true }) {
+export default function Modal({ open, onClose, title, children, footer, size = 'md', closeOnBackdrop = true, bodyClassName }) {
   const sizes = {
     sm: 'max-w-sm',
     md: 'max-w-md',
@@ -45,7 +45,7 @@ export default function Modal({ open, onClose, title, children, footer, size = '
                 </div>
               )}
 
-              <div className="px-4 py-4 overflow-y-auto">{children}</div>
+              <div className={bodyClassName || 'px-4 py-4 overflow-y-auto'}>{children}</div>
 
               {footer && (
                 <div className="px-4 py-3 border-t border-gray-200/60 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">{footer}</div>

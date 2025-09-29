@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronRight, LogOut } from 'lucide-react';
+import { ArrowLeft, LogOut } from 'lucide-react';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useAuthStore } from '../stores/useAuthStore';
 import ThemeToggle from '../components/ThemeToggle';
 import { Button, SettingsMenuItem } from '../components/ui';
 import ConfirmationModal from '../components/modal/ConfirmationModal';
 import SettingsSkeleton from '../components/skeleton/SettingsSkeleton';
+import { MIN_MODULES, MAX_MODULES } from '../components/insights/insightsConfig';
 
 
 
@@ -25,7 +26,8 @@ export default function Settings() {
   }, [preferences, fetchPreferences]);
 
   useEffect(() => {
-    if (preferences?.wardrobeDefaults) {
+    if (!preferences) return;
+    if (preferences.wardrobeDefaults) {
       const defaults = preferences.wardrobeDefaults;
       if (defaults.viewMode) setViewMode(defaults.viewMode);
       if (defaults.sortBy) setSortBy(defaults.sortBy);
@@ -135,6 +137,18 @@ export default function Settings() {
                 </select>
               </div>
             </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Insights dashboard</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Personalise which analytics cards appear on your Insights page.
+            </p>
+            <SettingsMenuItem
+              title="Manage Insights Modules"
+              subtitle={`Choose between ${MIN_MODULES} and ${MAX_MODULES} cards to display`}
+              onClick={() => navigate('/settings/insights')}
+            />
           </div>
 
           <div className="space-y-4">

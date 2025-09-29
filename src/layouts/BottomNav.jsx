@@ -1,7 +1,25 @@
 // src/components/BottomNav.jsx
 import { Link, useLocation } from 'react-router-dom';
-import { FilePlus, BookPlus, WashingMachine, House, User, BookOpenCheck } from 'lucide-react';
+import { FilePlus, BookPlus, WashingMachine, House, User, BookOpenCheck, Shirt } from 'lucide-react';
 import FabMenu from '../components/ui/FabMenu';
+
+const wardrobeFabActions = [
+  {
+    label: 'Add Cloth',
+    icon: FilePlus,
+    event: 'open-add-cloth',
+  },
+  {
+    label: 'Add Outfit',
+    icon: Shirt,
+    event: 'open-outfit-modal',
+  },
+  {
+    label: 'Log Wear',
+    icon: BookPlus,
+    action: 'logWear',
+  },
+];
 
 export default function BottomNav({ onAddClothClick, onLogWearClick }) {
   const location = useLocation();
@@ -24,12 +42,12 @@ export default function BottomNav({ onAddClothClick, onLogWearClick }) {
 
   return (
     <nav className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-30">
-      <ul className="flex items-end gap-2 rounded-2xl px-3 py-2 backdrop-blur bg-white/80 dark:bg-gray-900/80 border border-white/20 dark:border-white/10 shadow-lg">
+      <ul className="flex items-end gap-2 rounded-3xl px-3 py-2 backdrop-blur bg-white/85 dark:bg-gray-900/85 border border-white/20 dark:border-white/10 shadow-xl">
         {leftItems.map((item) => {
           const active = location.pathname.startsWith(item.to);
           return (
             <li key={item.to}>
-              <Link to={item.to} className={`flex flex-col items-center justify-center px-3 py-2 rounded-xl text-xs w-16 h-14 transition-colors ${active ? 'bg-gray-100/80 dark:bg-gray-800/80' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/60 dark:hover:bg-gray-800/60'}`}>
+              <Link to={item.to} className={`flex flex-col items-center justify-center px-3 py-2 rounded-xl text-xs w-16 h-14 transition-colors ${active ? 'bg-gray-100/90 dark:bg-gray-800/80 text-primary-deep dark:text-primary-bright' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/60 dark:hover:bg-gray-800/60'}`}>
                 <span className="text-lg leading-none">{item.icon}</span>
                 <span className="mt-1 leading-tight">{item.label}</span>
               </Link>
@@ -38,17 +56,28 @@ export default function BottomNav({ onAddClothClick, onLogWearClick }) {
         })}
 
         <FabMenu
-          actions={[
-            { label: 'Add Cloth', icon: FilePlus, onClick: onAddClothClick },
-            { label: 'Log Wear', icon: BookPlus, onClick: onLogWearClick },
-          ]}
+          actions={wardrobeFabActions.map(({ label, icon, event, action }) => ({
+            label,
+            icon,
+            onClick: () => {
+              if (event) {
+                window.dispatchEvent(new CustomEvent(event));
+              }
+              if (action === 'logWear') {
+                onLogWearClick?.();
+              }
+              if (!event && !action) {
+                onAddClothClick?.();
+              }
+            },
+          }))}
         />
 
         {rightItems.map((item) => {
           const active = location.pathname.startsWith(item.to);
           return (
             <li key={item.to}>
-              <Link to={item.to} className={`flex flex-col items-center justify-center px-3 py-2 rounded-xl text-xs w-16 h-14 transition-colors ${active ? 'bg-gray-100/80 dark:bg-gray-800/80' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/60 dark:hover:bg-gray-800/60'}`}>
+              <Link to={item.to} className={`flex flex-col items-center justify-center px-3 py-2 rounded-xl text-xs w-16 h-14 transition-colors ${active ? 'bg-gray-100/90 dark:bg-gray-800/80 text-primary-deep dark:text-primary-bright' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/60 dark:hover:bg-gray-800/60'}`}>
                 <span className="text-lg leading-none">{item.icon}</span>
                 <span className="mt-1 leading-tight">{item.label}</span>
               </Link>
