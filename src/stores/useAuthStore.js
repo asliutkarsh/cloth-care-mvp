@@ -1,6 +1,29 @@
 // src/stores/useAuthStore.js
 import { create } from 'zustand';
 import { AuthService, SetupService } from '../services';
+import { useWardrobeStore } from './useWardrobeStore';
+import { useCalendarStore } from './useCalendarStore';
+import { useSettingsStore } from './useSettingsStore';
+
+const bootstrapSessionData = async () => {
+  try {
+    if (typeof AuthService.initializeUserSession === 'function') {
+      await AuthService.initializeUserSession();
+    }
+  } catch (error) {
+    console.error('Failed to initialize user session data seed', error);
+  }
+
+  try {
+    await Promise.allSettled([
+      useWardrobeStore.getState().fetchAll(),
+      useCalendarStore.getState().fetchAll(),
+      useSettingsStore.getState().fetchPreferences(),
+    ]);
+  } catch (error) {
+    console.error('Failed to hydrate stores after auth', error);
+  }
+};
 
 export const useAuthStore = create((set, get) => ({
   user: null,
@@ -19,7 +42,9 @@ export const useAuthStore = create((set, get) => ({
   signup: async (name, email, password) => {
     try {
       const newUser = await AuthService.signup({ name, email, password });
-      set({ user: newUser });
+      set({ user: newUser, isAuthInitialized: true });
+      await bootstrapSessionData();
+      return newUser;
     } catch (error) {
       console.error("Signup failed:", error);
       throw error;
@@ -29,7 +54,8 @@ export const useAuthStore = create((set, get) => ({
   login: async (email, password) => {
     try {
       const loggedInUser = await AuthService.login({ email, password });
-      set({ user: loggedInUser });
+      set({ user: loggedInUser, isAuthInitialized: true });
+      await bootstrapSessionData();
       return loggedInUser;
     } catch (error) {
       console.error("Login failed:", error);
@@ -43,7 +69,8 @@ export const useAuthStore = create((set, get) => ({
   demoLogin: async () => {
     try {
       const loggedInUser = await AuthService.demoLogin();
-      set({ user: loggedInUser });
+      set({ user: loggedInUser, isAuthInitialized: true });
+      await bootstrapSessionData();
       return loggedInUser;
     } catch (error) {
       console.error("Demo login failed:", error);
@@ -51,12 +78,11 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  logout: async (options = {}) => {
-    const { preserveData = true } = options;
+  logout: async ({ preserveData = true } = {}) => {
     await AuthService.logout();
     if (!preserveData) {
       await SetupService.resetApp(true);
     }
-    set({ user: null });
+    set({ user: null, isAuthInitialized: true });
   },
 }));

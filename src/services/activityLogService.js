@@ -1,10 +1,34 @@
 // services/activityLogService.js
 import { v4 as uuidv4 } from 'uuid';
-import { StorageService } from "./storageService.js";
+import { StorageService } from './storageService.js';
 import { ClothService } from './clothService.js';
 import { OutfitService } from './outfitService.js';
 
 const KEY = StorageService.KEYS.ACTIVITY_LOGS;
+
+const getClothIdsForActivity = async (activity) => {
+  if (!activity) return [];
+
+  if (activity.type === 'outfit' && activity.outfitId) {
+    const outfit = await OutfitService.getById(activity.outfitId);
+    if (outfit?.clothIds?.length) {
+      return outfit.clothIds;
+    }
+  }
+
+  if (activity.type === 'individual' && Array.isArray(activity.clothIds)) {
+    return activity.clothIds;
+  }
+
+  return [];
+};
+
+const applyWearCountsForActivity = async (activity) => {
+  const clothIds = await getClothIdsForActivity(activity);
+  for (const clothId of clothIds) {
+    await ClothService.incrementWearCount(clothId);
+  }
+};
 
 export const ActivityLogService = {
   async getAll() {
@@ -30,6 +54,8 @@ export const ActivityLogService = {
    */
   async logActivity(activityData) {
     const logs = await this.getAll();
+    const status = activityData?.status || 'worn';
+    const now = new Date();
     const newLog = {
       id: uuidv4(),
       // Default to today's date in YYYY-MM-DD format
@@ -38,42 +64,54 @@ export const ActivityLogService = {
       ...activityData, // User-provided data overrides defaults
       time:
         activityData?.time ||
-        `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`,
-      createdAt: new Date().toISOString(),
+        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+      status,
+      appliedWearCounts: status === 'worn',
+      createdAt: now.toISOString(),
     };
 
     logs.push(newLog);
     await StorageService.set(KEY, logs);
 
-    // --- CRITICAL: Update wear counts for the clothes ---
-    let clothIdsToUpdate = [];
-    if (newLog.type === 'outfit' && newLog.outfitId) {
-      const outfit = await OutfitService.getById(newLog.outfitId);
-      if (outfit) {
-        clothIdsToUpdate = outfit.clothIds;
-      }
-    } else if (newLog.type === 'individual' && newLog.clothIds) {
-      clothIdsToUpdate = newLog.clothIds;
-    }
-
-    // Increment wear count for each cloth involved
-    for (const clothId of clothIdsToUpdate) {
-      await ClothService.incrementWearCount(clothId);
+    if (newLog.status === 'worn') {
+      await applyWearCountsForActivity(newLog);
     }
 
     return newLog;
   },
 
   async update(id, updates) {
-    let logs = await this.getAll();
+    const logs = await this.getAll();
+    const newLogs = [];
     let updatedLog = null;
-    const newLogs = logs.map(log => {
+
+    for (const log of logs) {
       if (log.id === id) {
-        updatedLog = { ...log, ...updates };
-        return updatedLog;
+        const nextLog = { ...log, ...updates };
+        if (typeof nextLog.appliedWearCounts === 'undefined') {
+          nextLog.appliedWearCounts = log.appliedWearCounts ?? log.status === 'worn';
+        }
+        const statusWas = log.status || 'worn';
+        const statusNow = nextLog.status || statusWas;
+        const needsWearIncrement =
+          statusWas !== 'worn' && statusNow === 'worn' && !nextLog.appliedWearCounts;
+
+        if (needsWearIncrement) {
+          await applyWearCountsForActivity(nextLog);
+          nextLog.appliedWearCounts = true;
+        }
+
+        updatedLog = nextLog;
+        newLogs.push(nextLog);
+      } else {
+        newLogs.push(log);
       }
-      return log;
-    });
+    }
+
+    if (!updatedLog) {
+      return null;
+    }
+
     await StorageService.set(KEY, newLogs);
     return updatedLog;
   },

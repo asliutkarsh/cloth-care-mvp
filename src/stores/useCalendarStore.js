@@ -23,40 +23,56 @@ const formatDate = (value) => {
   return `${year}-${month}-${day}`;
 };
 
+const normaliseActivity = (activity) => {
+  const status = typeof activity.status === 'string' ? activity.status : 'worn';
+  const appliedWearCounts =
+    typeof activity.appliedWearCounts === 'boolean' ? activity.appliedWearCounts : status === 'worn';
+  return {
+    status,
+    appliedWearCounts,
+    ...activity,
+  };
+};
+
+const getClothIdsForActivity = async (activity) => {
+  if (!activity) return [];
+
+  if (activity.type === 'outfit' && activity.outfitId) {
+    const outfit = await OutfitService.getById(activity.outfitId);
+    return outfit?.clothIds || [];
+  }
+
+  if (activity.type === 'individual' && Array.isArray(activity.clothIds)) {
+    return activity.clothIds;
+  }
+
+  return [];
+};
+
 export const useCalendarStore = create((set, get) => ({
-  // =================================================================
-  // STATE
-  // =================================================================
-  activities: {}, // Activities grouped by date for fast lookups
+  activities: {},
   outfits: [],
   clothes: [],
   cleanClothes: [],
   isCalendarInitialized: false,
 
-  // =================================================================
-  // ACTIONS
-  // =================================================================
-
-  /**
-   * Fetches all necessary data for the calendar page.
-   */
   fetchAll: async () => {
-    // Fetch data in parallel
     const [allActivities, allOutfits, allClothes] = await Promise.all([
       ActivityLogService.getAll(),
       OutfitService.getAll(),
       ClothService.getAll(),
     ]);
 
-    // Group activities by date
     const groupedActivities = allActivities.reduce((acc, activity) => {
       const key = formatDate(activity.date || activity.createdAt);
       if (!acc[key]) acc[key] = [];
-      acc[key].push({ ...activity, date: key });
+      acc[key].push({ ...normaliseActivity(activity), date: key });
       return acc;
     }, {});
 
-    const cleanClothes = allClothes.filter(cloth => cloth.status === ClothService.STATUSES.CLEAN);
+    const cleanClothes = allClothes.filter(
+      (cloth) => cloth.status === ClothService.STATUSES.CLEAN
+    );
 
     set({
       activities: groupedActivities,
@@ -67,47 +83,77 @@ export const useCalendarStore = create((set, get) => ({
     });
   },
 
-  /**
-   * Adds a new activity and refreshes the data.
-   */
   addActivity: async (activityData) => {
     const dateKey = formatDate(activityData?.date);
     await ActivityLogService.logActivity({
       ...activityData,
       date: dateKey,
     });
-    // After adding, refresh all calendar data to stay in sync
     await get().fetchAll();
   },
 
-  // =================================================================
-  // SELECTORS (Computed data)
-  // =================================================================
+  updateActivityStatus: async (activityId, status, extraUpdates = {}) => {
+    await ActivityLogService.update(activityId, { status, ...extraUpdates });
+    await get().fetchAll();
+  },
 
-  /**
-   * A helper function to get full details for a specific activity log.
-   */
+  deleteActivity: async (activityId) => {
+    const { activities } = get();
+    let activityToDelete = null;
+
+    Object.values(activities).some((list) => {
+      const match = list.find((entry) => entry.id === activityId);
+      if (match) {
+        activityToDelete = match;
+        return true;
+      }
+      return false;
+    });
+
+    if (!activityToDelete) {
+      console.error('Activity not found for deletion');
+      return;
+    }
+
+    if (activityToDelete.appliedWearCounts) {
+      const clothIds = await getClothIdsForActivity(activityToDelete);
+      for (const clothId of clothIds) {
+        await ClothService.decrementWearCount(clothId);
+      }
+    }
+
+    await ActivityLogService.remove(activityId);
+    await get().fetchAll();
+  },
+
   getActivityDetails: (activity) => {
-    const { outfits, clothes } = get(); // Get outfits and clothes from the store's state
+    const { outfits, clothes } = get();
+
     if (activity.type === 'outfit') {
-      const outfit = outfits.find(o => o.id === activity.outfitId);
+      const outfit = outfits.find((o) => o.id === activity.outfitId);
       const outfitClothes = (outfit?.clothIds || [])
-        .map(clothId => clothes.find(c => c.id === clothId))
+        .map((clothId) => clothes.find((c) => c.id === clothId))
         .filter(Boolean);
       return {
         type: 'outfit',
         title: outfit?.name || 'Deleted Outfit',
-        subtitle: outfitClothes.length ? `${outfitClothes.length} item${outfitClothes.length === 1 ? '' : 's'}` : 'No items',
+        subtitle: outfitClothes.length
+          ? `${outfitClothes.length} item${outfitClothes.length === 1 ? '' : 's'}`
+          : 'No items',
         items: outfitClothes,
       };
-    } else if (activity.type === 'individual') {
+    }
+
+    if (activity.type === 'individual') {
       const involvedClothes = (activity.clothIds || [])
-        .map(clothId => clothes.find(c => c.id === clothId))
+        .map((clothId) => clothes.find((c) => c.id === clothId))
         .filter(Boolean);
       return {
         type: 'individual',
-        title: involvedClothes.length ? `${involvedClothes.length} item${involvedClothes.length === 1 ? '' : 's'} worn` : 'No items',
-        subtitle: involvedClothes.map(c => c.name).join(', ') || 'Select items removed',
+        title: involvedClothes.length
+          ? `${involvedClothes.length} item${involvedClothes.length === 1 ? '' : 's'} worn`
+          : 'No items',
+        subtitle: involvedClothes.map((c) => c.name).join(', ') || 'Select items removed',
         items: involvedClothes,
       };
     }
@@ -120,43 +166,10 @@ export const useCalendarStore = create((set, get) => ({
     };
   },
 
-    deleteActivity: async (activityId) => {
+  getPlannedActivitiesForDate: (date) => {
+    const key = formatDate(date);
     const { activities } = get();
-    let activityToDelete = null;
-
-    // Find the activity in our grouped state
-    for (const date in activities) {
-      const found = activities[date].find(act => act.id === activityId);
-      if (found) {
-        activityToDelete = found;
-        break;
-      }
-    }
-
-    if (!activityToDelete) {
-      console.error("Activity not found for deletion");
-      return;
-    }
-
-    // Determine which clothes were part of the activity
-    let clothIdsToUpdate = [];
-    if (activityToDelete.type === 'outfit') {
-      const outfit = await OutfitService.getById(activityToDelete.outfitId);
-      if (outfit) clothIdsToUpdate = outfit.clothIds;
-    } else {
-      clothIdsToUpdate = activityToDelete.clothIds;
-    }
-
-    // Decrement the wear count for each cloth
-    for (const clothId of clothIdsToUpdate) {
-      await ClothService.decrementWearCount(clothId);
-    }
-
-    // Finally, remove the activity log itself
-    await ActivityLogService.remove(activityId);
-
-    // Refresh all data to ensure UI is in sync
-    await get().fetchAll();
+    return (activities[key] || []).filter((activity) => activity.status === 'planned');
   },
 
 }));

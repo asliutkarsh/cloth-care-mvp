@@ -27,6 +27,33 @@ const getDefaultTime = (provided) => {
   return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 };
 
+const parseDateValue = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) {
+    const copy = new Date(value.getTime());
+    copy.setHours(0, 0, 0, 0);
+    return copy;
+  }
+  if (typeof value === 'string') {
+    const parts = value.split('-').map(Number);
+    if (parts.length === 3 && parts.every((n) => Number.isFinite(n))) {
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
+};
+
+const isFutureDate = (value) => {
+  const parsed = parseDateValue(value);
+  if (!parsed) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return parsed.getTime() > today.getTime();
+};
+
 export default function AddActivityModal({ open, onClose, date, time, outfits, clothes, categories, onSubmit }) {
   const { createOutfit } = useWardrobeStore();
   const [activeTab, setActiveTab] = useState('outfits');
@@ -40,6 +67,11 @@ export default function AddActivityModal({ open, onClose, date, time, outfits, c
   const scrollContainerRef = useRef(null);
   const { addToast } = useToast();
   const [activityTime, setActivityTime] = useState(getDefaultTime(time));
+
+  const planningMode = isFutureDate(activityDate);
+  const actionLabel = planningMode ? 'Save Plan' : 'Log Activity';
+  const modalTitle = planningMode ? 'Plan an Outfit' : 'Log Activity';
+  const successMessage = planningMode ? 'Outfit plan saved!' : 'Activity logged successfully!';
 
   useEffect(() => {
     if (open) {
@@ -145,8 +177,9 @@ export default function AddActivityModal({ open, onClose, date, time, outfits, c
         return;
       }
       try {
-        await onSubmit({ ...payload, time: activityTime, date: activityDate });
-        addToast('Activity logged successfully!', { type: 'success' });
+        const status = planningMode ? 'planned' : 'worn';
+        await onSubmit({ ...payload, time: activityTime, date: activityDate, status });
+        addToast(successMessage, { type: 'success' });
       } catch (error) {
         console.error('Failed to log activity', error);
         addToast('Something went wrong while logging.', { type: 'error' });
@@ -173,7 +206,7 @@ export default function AddActivityModal({ open, onClose, date, time, outfits, c
         Cancel
       </Button>
       <Button onClick={handleSubmit} disabled={isSubmitDisabled}>
-        Log Activity
+        {actionLabel}
       </Button>
     </div>
   );
@@ -181,7 +214,7 @@ export default function AddActivityModal({ open, onClose, date, time, outfits, c
     <Modal
       open={open}
       onClose={onClose}
-      title="Log Activity"
+      title={modalTitle}
       size="2xl"
       bodyClassName="px-0 py-0"
       footer={footer}
@@ -216,7 +249,7 @@ export default function AddActivityModal({ open, onClose, date, time, outfits, c
             />
           </div>
           <Button onClick={handleSubmit} disabled={isSubmitDisabled} className="sm:min-w-[140px]">
-            Log Activity
+            {actionLabel}
           </Button>
         </div>
 

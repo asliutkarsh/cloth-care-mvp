@@ -151,7 +151,9 @@ export default function Wardrobe() {
                   className="flex-1 min-w-0 w-full md:w-auto"
                 />
                 <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start">
-                  <CreateNewMenu className="shrink-0" />
+                  <div className="hidden md:block">
+                    <CreateNewMenu className="shrink-0" />
+                  </div>
 
                   {activeTab === 'clothes' && (
                     <Button

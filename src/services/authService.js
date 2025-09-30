@@ -1,5 +1,6 @@
 // src/services/authService.js
 import { UserService } from "./userService.js";
+import { SetupService } from "./setupService.js";
 import { v4 as uuidv4 } from 'uuid';
 
 const USERS_KEY = 'wardrobe_users';
@@ -58,5 +59,14 @@ export const AuthService = {
 
   async getCurrentUser() {
     return UserService.getUser();
+  },
+
+  async logout() {
+    await UserService.clearUser();
+    return true;
+  },
+
+  async initializeUserSession() {
+    await SetupService.initialize();
   },
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useWardrobeStore } from '../stores/useWardrobeStore';
@@ -6,10 +6,11 @@ import { useLaundryStore } from '../stores/useLaundryStore';
 import { useCalendarStore } from '../stores/useCalendarStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { Button } from '../components/ui';
-import { PlusCircle, BookPlus, Shirt, Layers, WashingMachine } from 'lucide-react';
+import { PlusCircle, BookPlus, Shirt, Layers, WashingMachine, CalendarCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import DashboardSkeleton from '../components/skeleton/DashboardSkeleton';
 import ActivityItem from '../components/dashboard/ActivityItem';
+import { useToast } from '../context/ToastProvider.jsx';
 
 // Reusable Stat Card for displaying key metrics
 const StatCard = ({ icon, value, label, onClick }) => (
@@ -139,7 +140,9 @@ export default function Dashboard() {
   const user = useAuthStore(state => state.user);
   const { clothes, outfits, isInitialized: isWardrobeReady } = useWardrobeStore();
   const { dirtyClothes, needsPressing } = useLaundryStore();
-  const { activities, getActivityDetails } = useCalendarStore();
+  const { activities, getActivityDetails, getPlannedActivitiesForDate, updateActivityStatus } = useCalendarStore();
+  const { addToast } = useToast();
+  const [markingId, setMarkingId] = useState(null);
 
   const recentActivities = useMemo(() => {
     return Object.values(activities)
@@ -147,6 +150,34 @@ export default function Dashboard() {
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, 5);
   }, [activities]);
+
+  const plannedToday = useMemo(() => {
+    if (!getPlannedActivitiesForDate) return [];
+    return getPlannedActivitiesForDate(new Date());
+  }, [getPlannedActivitiesForDate, activities]);
+
+  const plannedWithDetails = useMemo(() => {
+    return plannedToday.map((activity) => ({
+      activity,
+      details: getActivityDetails(activity),
+    }));
+  }, [plannedToday, getActivityDetails]);
+
+  const handleConfirmPlanned = async (activity) => {
+    if (markingId) return;
+    setMarkingId(activity.id);
+    const now = new Date();
+    const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    try {
+      await updateActivityStatus(activity.id, 'worn', { time });
+      addToast('Marked as worn. Nice follow-through!', { type: 'success' });
+    } catch (error) {
+      console.error('Failed to mark planned outfit as worn', error);
+      addToast('Could not update the planned outfit. Try again.', { type: 'error' });
+    } finally {
+      setMarkingId(null);
+    }
+  };
 
   const cleanClothesCount = clothes.filter(c => c.status === 'clean')?.length || 0;
   const inLaundryCount = (dirtyClothes?.length || 0) + (needsPressing?.length || 0);
@@ -193,7 +224,48 @@ export default function Dashboard() {
       </div>
 
       {/* Quick Actions, Recent Activity & Outfit Suggestion */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="space-y-6">
+        {plannedWithDetails.length > 0 && (
+          <div className="glass-card p-5 space-y-4 border border-blue-200/70 dark:border-blue-700/60 bg-blue-50/60 dark:bg-blue-900/15">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-full bg-blue-200/70 dark:bg-blue-800/60">
+                <CalendarCheck size={20} className="text-blue-700 dark:text-blue-200" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">Planned outfits waiting for today</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Give your planned looks credit by marking them as worn when you follow through.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {plannedWithDetails.map(({ activity, details }) => (
+                <div
+                  key={activity.id}
+                  className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-blue-200/60 dark:border-blue-600/50 bg-white/80 dark:bg-blue-950/40 p-3"
+                >
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">{details.title || 'Planned outfit'}</p>
+                    {details.subtitle ? (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{details.subtitle}</p>
+                    ) : null}
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => handleConfirmPlanned(activity)}
+                    disabled={markingId === activity.id}
+                    className="sm:w-auto"
+                  >
+                    {markingId === activity.id ? 'Updating…' : 'Yes, I wore it'}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Quick Actions */}
         <div className="space-y-4">
           <h2 className="text-xl font-bold">Quick Actions</h2>
@@ -223,6 +295,7 @@ export default function Dashboard() {
               <p className="text-sm">Try <span className="tag-new">New</span> outfit ideas or mark items as <span className="tag-worn">Worn</span> to keep track.</p>
             </div>
           )}
+        </div>
         </div>
       </div>
     </main>

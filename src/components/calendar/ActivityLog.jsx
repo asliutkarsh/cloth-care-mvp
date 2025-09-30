@@ -43,18 +43,39 @@ export default function ActivityLog({ selectedDate, activitiesForDay, getActivit
           <div className="space-y-3">
             {activitiesForDay.map((activity) => {
               const details = getActivityDetails(activity);
+              const isPlanned = activity.status === 'planned';
               return (
-                <div key={activity.id} className="flex items-start gap-3 p-3 bg-gray-50/50 dark:bg-gray-700/50 rounded-lg">
-                  <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mt-1 ${activity.type === 'outfit' ? 'bg-blue-200 dark:bg-blue-800' : 'bg-green-200 dark:bg-green-800'}`}>
-                    {activity.type === 'outfit' ? <Layers size={16} className="text-blue-600 dark:text-blue-400" /> : <Shirt size={16} className="text-green-600 dark:text-green-400" />}
+                <div
+                  key={activity.id}
+                  className={`flex items-start gap-3 p-3 rounded-lg border
+                    ${isPlanned
+                      ? 'border-dashed border-blue-300 dark:border-blue-600 bg-blue-50/60 dark:bg-blue-900/20'
+                      : 'border-transparent bg-gray-50/50 dark:bg-gray-700/50'}
+                  `}
+                >
+                  <div
+                    className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mt-1 ${activity.type === 'outfit' ? 'bg-blue-200 dark:bg-blue-800' : 'bg-green-200 dark:bg-green-800'}`}
+                  >
+                    {activity.type === 'outfit' ? (
+                      <Layers size={16} className="text-blue-600 dark:text-blue-400" />
+                    ) : (
+                      <Shirt size={16} className="text-green-600 dark:text-green-400" />
+                    )}
                   </div>
                   <div className="flex-1">
                     <div className="font-medium text-gray-900 dark:text-white mb-1">
                       {details.title || 'Activity'}
+                      {isPlanned ? (
+                        <span className="ml-2 inline-flex items-center text-xs font-medium text-blue-600 dark:text-blue-400">
+                          Planned
+                        </span>
+                      ) : null}
                     </div>
                     <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
                       <Clock size={12} className="inline mr-1" />
-                      {new Date(activity.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {(activity.time && activity.time.length === 5)
+                        ? activity.time
+                        : new Date(activity.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                     {details.subtitle && (
                       <div className="text-xs text-gray-600 dark:text-gray-400">
@@ -62,13 +83,28 @@ export default function ActivityLog({ selectedDate, activitiesForDay, getActivit
                       </div>
                     )}
                   </div>
-                  <button
-                    onClick={() => deleteActivity(activity.id)}
-                    className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                    aria-label="Delete activity"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="flex flex-col items-end gap-2">
+                    {isPlanned && (
+                      <Button
+                        size="xs"
+                        variant="primary"
+                        onClick={() =>
+                          useCalendarStore
+                            .getState()
+                            .updateActivityStatus(activity.id, 'worn')
+                        }
+                      >
+                        Mark worn
+                      </Button>
+                    )}
+                    <button
+                      onClick={() => deleteActivity(activity.id)}
+                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                      aria-label="Delete activity"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               );
             })}
