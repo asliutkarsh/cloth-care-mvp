@@ -201,6 +201,19 @@ export default function Settings() {
 
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Data & Privacy</h3>
+
+            <div className="mb-4 text-center glass-card border border-dashed border-accent-orange/40 bg-accent-orange/10 text-coolgray-700 dark:text-coolgray-500 p-3">
+              <p className="text-sm mb-2">
+                <strong>⚠️ Important:</strong> Your wardrobe data is stored locally in your browser's storage.
+              </p>
+              <p className="text-sm mb-2">
+                Please export your data regularly using the "Export Data" option below to avoid losing your wardrobe information when clearing browser cache or switching devices.
+              </p>
+              <p className="text-sm">
+                <strong>🔄 We're working on:</strong> Cloud synchronization to make your wardrobe accessible across all your devices.
+              </p>
+            </div>
+
             <SettingsMenuItem
               title="Export Data"
               subtitle="Download your wardrobe data"
