@@ -1,18 +1,17 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { useSettingsStore } from '../stores/useSettingsStore';
-import ThemeToggle from '../components/ThemeToggle';
-import { Button, SettingsMenuItem } from '../components/ui';
-import ConfirmationModal from '../components/modal/ConfirmationModal';
-import SettingsSkeleton from '../components/skeleton/SettingsSkeleton';
-import { MIN_MODULES, MAX_MODULES } from '../components/insights/insightsConfig';
-import { useToast } from '../context/ToastProvider.jsx';
-
-
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
+import { useSettingsStore } from '../stores/useSettingsStore'
+import ThemeToggle from '../components/ThemeToggle'
+import { Button, SettingsMenuItem } from '../components/ui'
+import ConfirmationModal from '../components/modal/ConfirmationModal'
+import SettingsSkeleton from '../components/skeleton/SettingsSkeleton'
+import { MIN_MODULES, MAX_MODULES } from '../components/insights/insightsConfig'
+import { useToast } from '../context/ToastProvider.jsx'
+import { APP_VERSION } from '../app.config.js'
 
 export default function Settings() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
   const {
     exportData,
     importData,
@@ -20,29 +19,29 @@ export default function Settings() {
     preferences,
     updatePreference,
     fetchPreferences,
-  } = useSettingsStore();
-  const [confirmState, setConfirmState] = useState({ open: false });
-  const [viewMode, setViewMode] = useState('grid');
-  const [sortBy, setSortBy] = useState('newest');
-  const { addToast } = useToast();
-  const [isResetting, setIsResetting] = useState(false);
+  } = useSettingsStore()
+  const [confirmState, setConfirmState] = useState({ open: false })
+  const [viewMode, setViewMode] = useState('grid')
+  const [sortBy, setSortBy] = useState('newest')
+  const { addToast } = useToast()
+  const [isResetting, setIsResetting] = useState(false)
 
   useEffect(() => {
     if (!preferences) {
-      fetchPreferences();
+      fetchPreferences()
     }
-  }, [preferences, fetchPreferences]);
+  }, [preferences, fetchPreferences])
 
   useEffect(() => {
-    if (!preferences) return;
+    if (!preferences) return
     if (preferences.wardrobeDefaults) {
-      const defaults = preferences.wardrobeDefaults;
-      if (defaults.viewMode) setViewMode(defaults.viewMode);
-      if (defaults.sortBy) setSortBy(defaults.sortBy);
+      const defaults = preferences.wardrobeDefaults
+      if (defaults.viewMode) setViewMode(defaults.viewMode)
+      if (defaults.sortBy) setSortBy(defaults.sortBy)
     }
-  }, [preferences]);
+  }, [preferences])
 
-  const onConfirmClose = () => setConfirmState({ open: false });
+  const onConfirmClose = () => setConfirmState({ open: false })
 
   const handleResetApp = () => {
     setConfirmState({
@@ -53,25 +52,25 @@ export default function Settings() {
       confirmText: 'Yes, Reset Everything',
       isDanger: true,
       onConfirm: async () => {
-        if (isResetting) return;
-        setIsResetting(true);
+        if (isResetting) return
+        setIsResetting(true)
         try {
-          await resetApp();
-          await fetchPreferences();
-          addToast('App data has been reset successfully.', { type: 'success' });
-          onConfirmClose();
+          await resetApp()
+          await fetchPreferences()
+          addToast('App data has been reset successfully.', { type: 'success' })
+          onConfirmClose()
         } catch (error) {
-          console.error('Failed to reset app data', error);
-          addToast('Reset failed. Please try again.', { type: 'error' });
+          console.error('Failed to reset app data', error)
+          addToast('Reset failed. Please try again.', { type: 'error' })
         } finally {
-          setIsResetting(false);
+          setIsResetting(false)
         }
       },
-    });
-  };
+    })
+  }
 
   if (!preferences) {
-    return <SettingsSkeleton />;
+    return <SettingsSkeleton />
   }
 
   return (
@@ -131,12 +130,12 @@ export default function Settings() {
                   <button
                     className={`px-3 py-1.5 text-sm ${viewMode === 'grid' ? 'bg-primary-activeBg text-white' : ''}`}
                     onClick={async () => {
-                      setViewMode('grid');
+                      setViewMode('grid')
                       await updatePreference('wardrobeDefaults', {
                         ...(preferences?.wardrobeDefaults || {}),
                         viewMode: 'grid',
                         sortBy,
-                      });
+                      })
                     }}
                     type="button"
                   >
@@ -145,12 +144,12 @@ export default function Settings() {
                   <button
                     className={`px-3 py-1.5 text-sm ${viewMode === 'list' ? 'bg-primary-activeBg text-white' : ''}`}
                     onClick={async () => {
-                      setViewMode('list');
+                      setViewMode('list')
                       await updatePreference('wardrobeDefaults', {
                         ...(preferences?.wardrobeDefaults || {}),
                         viewMode: 'list',
                         sortBy,
-                      });
+                      })
                     }}
                     type="button"
                   >
@@ -169,13 +168,13 @@ export default function Settings() {
                 <select
                   value={sortBy}
                   onChange={async (e) => {
-                    const next = e.target.value;
-                    setSortBy(next);
+                    const next = e.target.value
+                    setSortBy(next)
                     await updatePreference('wardrobeDefaults', {
                       ...(preferences?.wardrobeDefaults || {}),
                       viewMode,
                       sortBy: next,
-                    });
+                    })
                   }}
                   className="rounded-md border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm bg-white dark:bg-gray-900"
                 >
@@ -200,17 +199,26 @@ export default function Settings() {
           </div>
 
           <div className="space-y-4">
+            <h3 className="text-lg font-semibold">About</h3>
+            <SettingsMenuItem
+              title="About ClothCare"
+              subtitle={`Version ${APP_VERSION}`}
+              onClick={() => navigate('/about')}
+            />
+          </div>
+
+          <div className="space-y-4">
             <h3 className="text-lg font-semibold">Data & Privacy</h3>
 
             <div className="mb-4 text-center glass-card border border-dashed border-accent-orange/40 bg-accent-orange/10 text-coolgray-700 dark:text-coolgray-500 p-3">
               <p className="text-sm mb-2">
-                <strong>⚠️ Important:</strong> Your wardrobe data is stored locally in your browser's storage.
+                <strong> Important:</strong> Your wardrobe data is stored locally in your browser's storage.
               </p>
               <p className="text-sm mb-2">
                 Please export your data regularly using the "Export Data" option below to avoid losing your wardrobe information when clearing browser cache or switching devices.
               </p>
               <p className="text-sm">
-                <strong>🔄 We're working on:</strong> Cloud synchronization to make your wardrobe accessible across all your devices.
+                <strong> We're working on:</strong> Cloud synchronization to make your wardrobe accessible across all your devices.
               </p>
             </div>
 
@@ -240,9 +248,9 @@ export default function Settings() {
         onConfirm={confirmState.onConfirm}
         title={confirmState.title}
         message={confirmState.message}
-        confirmText={isResetting ? 'Resetting…' : confirmState.confirmText}
+        confirmText={isResetting ? 'Resetting' : confirmState.confirmText}
         isDanger={confirmState.isDanger}
       />
     </div>
-  );
+  )
 }

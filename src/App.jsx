@@ -19,6 +19,7 @@ import {
   Trips,
   TripPlanner,
   SettingsInsightsPage,
+  AboutPage,
 } from './pages'
 import { AuthProvider } from './context/AuthProvider'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -76,6 +77,7 @@ export default function App() {
             <Route path="/trips" element={<Trips />} />
             <Route path="/trips/:tripId" element={<TripPlanner />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route
               path="/settings/categories"
               element={<CategoryManagementPage />}
