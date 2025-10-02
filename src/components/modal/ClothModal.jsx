@@ -5,6 +5,7 @@ import Input from '../ui/Input'
 import Select from '../ui/Select'
 import { useWardrobeStore } from '../../stores/useWardrobeStore'
 import { Camera, Upload, X, Loader2 } from 'lucide-react'
+import imageCompression from 'browser-image-compression'
 
 const colorPresets = [
   '#1f2933',
@@ -26,7 +27,7 @@ const seasons = ['All Season', 'Spring', 'Summer', 'Fall', 'Winter']
 const flattenCategories = (list = [], depth = 0) => {
   let options = []
   for (const category of list) {
-    options.push({ value: category.id, label: `${'â€”'.repeat(depth)} ${category.name}` })
+    options.push({ value: category.id, label: `${'—'.repeat(depth)} ${category.name}` })
     if (category.children?.length) {
       options = options.concat(flattenCategories(category.children, depth + 1))
     }
@@ -88,15 +89,32 @@ export default function ClothModal({ open, onClose, onSubmit, initialData = null
     }
   }
 
-  const handleImageUpload = (event) => {
+  const handleImageUpload = async (event) => {
     const file = event.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setPreview(reader.result)
-      handleChange('image', reader.result)
+
+    console.log(`Original file size: ${(file.size / 1024 / 1024).toFixed(2)} MB`)
+
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1024,
+      useWebWorker: true,
     }
-    reader.readAsDataURL(file)
+
+    try {
+      const compressedFile = await imageCompression(file, options)
+      console.log(`Compressed file size: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`)
+
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPreview(reader.result)
+        handleChange('image', reader.result)
+      }
+      reader.readAsDataURL(compressedFile)
+    } catch (error) {
+      console.error('Error during image compression:', error)
+      // Optionally notify the user via toast.
+    }
   }
 
   const removeImage = () => {
@@ -190,9 +208,11 @@ export default function ClothModal({ open, onClose, onSubmit, initialData = null
             <div className="space-y-4">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Essential details</h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md-grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-200">Name<span className="text-red-500">*</span></label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Name<span className="text-red-500">*</span>
+                  </label>
                   <Input
                     value={form.name}
                     onChange={(e) => handleChange('name', e.target.value)}
@@ -203,7 +223,9 @@ export default function ClothModal({ open, onClose, onSubmit, initialData = null
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-200">Category<span className="text-red-500">*</span></label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Category<span className="text-red-500">*</span>
+                  </label>
                   <Select value={form.categoryId} onChange={(e) => handleChange('categoryId', e.target.value)} aria-invalid={!!errors.categoryId}>
                     <option value="" disabled>Select a category</option>
                     {categoryOptions.map((opt) => (

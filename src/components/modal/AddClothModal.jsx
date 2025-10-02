@@ -5,6 +5,7 @@ import Button from '../ui/Button'
 import Input from '../ui/Input'
 import Select from '../ui/Select'
 import { Camera, Upload, X, Loader2 } from 'lucide-react'
+import imageCompression from 'browser-image-compression'
 import { useToast } from '../../context/ToastProvider.jsx'
 
 const colorPresets = [
@@ -89,15 +90,31 @@ export default function AddClothModal({ open, onClose }) {
     }
   }
 
-  const handleImageUpload = (event) => {
+  const handleImageUpload = async (event) => {
     const file = event.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setImagePreview(reader.result)
-      handleChange('image', reader.result)
+
+    console.log(`Original file size: ${(file.size / 1024 / 1024).toFixed(2)} MB`)
+
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1024,
+      useWebWorker: true,
     }
-    reader.readAsDataURL(file)
+
+    try {
+      const compressedFile = await imageCompression(file, options)
+      console.log(`Compressed file size: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`)
+
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result)
+        handleChange('image', reader.result)
+      }
+      reader.readAsDataURL(compressedFile)
+    } catch (error) {
+      console.error('Error during image compression:', error)
+    }
   }
 
   const handleRemoveImage = () => {
