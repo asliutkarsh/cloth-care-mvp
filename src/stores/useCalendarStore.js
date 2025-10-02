@@ -1,6 +1,6 @@
 // src/stores/useCalendarStore.js
 import { create } from 'zustand';
-import { ActivityLogService, OutfitService, ClothService } from '../services';
+import { ActivityLogService, OutfitService, ClothService } from '../services/crud';
 
 const normalizeDate = (value) => {
   if (!value) return new Date();

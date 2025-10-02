@@ -1,26 +1,28 @@
-// services/PreferenceService.js
-import { StorageService } from './storageService.js';
+import { StorageService } from '../setup/storage.service';
+import { UserPreferences } from '../model/preferences.model';
 
 const PREF_TABLE = StorageService.KEYS.PREFERENCES;
 const PREF_ID = 'preferences';
 
-
-// Default preferences structure
-
-const DEFAULT_PREFERENCES = {
+const DEFAULT_PREFERENCES: UserPreferences = {
+  id: PREF_ID,
   notifications: {
-    enabled: false,
-    dayOfWeek: 0,
-    time: '09:00',
+    laundry: {
+      enabled: false,
+      dayOfWeek: 0,
+      time: '09:00',
+    },
+    trips: {
+      packingReminderEnabled: false,
+      unpackingReminderEnabled: false,
+    },
   },
   filterChipSettings: {
     clothes: [],
     outfits: [],
   },
   outfitTagSuggestions: [],
-  outfitTagStats: {
-    // '#summer': { count: 0, lastUsed: 'ISO' }
-  },
+  outfitTagStats: {},
   wardrobeDefaults: {
     viewMode: 'grid',
     sortBy: 'newest',
@@ -35,26 +37,40 @@ const DEFAULT_PREFERENCES = {
       'valueLeaders',
     ],
   },
+  currency: 'USD',
 };
+
+interface PreferenceUpdates {
+  notifications?: Partial<UserPreferences['notifications']>;
+  filterChipSettings?: Partial<UserPreferences['filterChipSettings']>;
+  wardrobeDefaults?: Partial<UserPreferences['wardrobeDefaults']>;
+  insightsModules?: Partial<UserPreferences['insightsModules']>;
+  outfitTagSuggestions?: UserPreferences['outfitTagSuggestions'];
+  outfitTagStats?: UserPreferences['outfitTagStats'];
+  currency?: string;
+  lastBackupDate?: string;
+}
 
 export const PreferenceService = {
   /**
    * Retrieves the user's preferences, returning defaults if none are set.
    */
-  async getPreferences() {
-    const stored = await StorageService.getById(PREF_TABLE, PREF_ID);
-    const { id, ...storedPrefs } = stored || {};
+  async getPreferences(): Promise<UserPreferences> {
+    const stored = await StorageService.getById<UserPreferences>(PREF_TABLE, PREF_ID);
+    if (!stored) {
+      return DEFAULT_PREFERENCES;  // Return default preferences if nothing is found
+    }
+
+    const { id, ...storedPrefs } = stored;
     return { ...DEFAULT_PREFERENCES, ...storedPrefs };
   },
 
   /**
    * Updates the user's preferences by merging the new settings.
-   * @param {object} newPrefs - An object containing the preferences to update.
    */
-  async updatePreferences(newPrefs) {
+  async updatePreferences(newPrefs: PreferenceUpdates): Promise<UserPreferences> {
     const currentPrefs = await this.getPreferences();
-    // Deep merge for nested objects like 'notifications'
-    const updatedPrefs = {
+    const updatedPrefs: UserPreferences = {
       ...currentPrefs,
       ...newPrefs,
       notifications: {
@@ -81,7 +97,7 @@ export const PreferenceService = {
       },
     };
 
-    const dataToStore = { id: PREF_ID, ...updatedPrefs };
+    const dataToStore = { ...updatedPrefs };
     let saved = await StorageService.update(PREF_TABLE, PREF_ID, dataToStore);
     if (!saved) {
       await StorageService.add(PREF_TABLE, dataToStore);

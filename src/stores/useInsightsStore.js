@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { InsightsService } from '../services';
+import { InsightsService } from '../services/logic';
 
 export const useInsightsStore = create((set, get) => ({
   isLoading: false,

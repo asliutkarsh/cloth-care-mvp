@@ -1,19 +1,19 @@
-// services/setupService.js
-import { CategoryService } from "./categoryService.js";
-import { ClothService } from "./clothService.js";
-import { OutfitService } from "./outfitService.js";
-import { StorageService } from './storageService.js';
+import { CategoryService } from '../crud/category.service';
+import { ClothService } from '../crud/cloth.service';
+import { OutfitService } from '../crud/outfit.service';
+import { StorageService } from './storage.service';
+import { Cloth } from '../model/cloth.model';
 import {
   createDefaultCategories,
   createDefaultClothes,
   createDefaultOutfits,
-} from "./defaultValues.js";
+} from './defaultValues';
 
 export const SetupService = {
   /**
    * Checks if the database is empty and seeds it with default data if needed.
    */
-  async initialize() {
+  async initialize(): Promise<boolean> {
     const categories = await CategoryService.getAll();
     // If there are no categories, assume it's a fresh install
     if (categories.length === 0) {
@@ -26,14 +26,15 @@ export const SetupService = {
         await CategoryService.addCategory(cat);
       }
 
-      // 2. Create Clothes, linked to the new categories
-      const defaultClothes = createDefaultClothes(defaultCategories);
-      for (const cloth of defaultClothes) {
-        await ClothService.add(cloth);
+      // 3. Create Outfits, linked to the new clothes
+      const defaultClothesData = createDefaultClothes(defaultCategories);
+      for (const clothData of defaultClothesData) {
+        await ClothService.add(clothData);
       }
 
-      // 3. Create Outfits, linked to the new clothes
-      const defaultOutfits = createDefaultOutfits(defaultClothes);
+      // Get the created clothes for outfit creation
+      const createdClothes: Cloth[] = await ClothService.getAll();
+      const defaultOutfits = createDefaultOutfits(createdClothes);
       for (const outfit of defaultOutfits) {
         await OutfitService.add(outfit);
       }
@@ -49,12 +50,15 @@ export const SetupService = {
    * Wipes all data and re-initializes the application.
    * A destructive action, typically for development purposes.
    */
-  async resetApp(isLogout = false) {
+  async resetApp(isLogout = false): Promise<boolean> {
     console.warn("Resetting application: All data will be lost.");
     if (!isLogout) {
-      await StorageService.clearAllExceptUser();
-    }else{
-      await StorageService.clear();
+      // Clear all data except user data
+      const tables = Object.values(StorageService.KEYS).filter((key) => key !== StorageService.KEYS.USER);
+      await Promise.all(tables.map((table) => StorageService.clear(table)));
+    } else {
+      // Clear everything including user data
+      await Promise.all(Object.values(StorageService.KEYS).map((table) => StorageService.clear(table)));
     }
     return this.initialize();
   }

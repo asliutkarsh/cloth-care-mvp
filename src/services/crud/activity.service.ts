@@ -1,12 +1,20 @@
-// services/activityLogService.js
 import { v4 as uuidv4 } from 'uuid';
-import { StorageService } from './storageService.js';
-import { ClothService } from './clothService.js';
-import { OutfitService } from './outfitService.js';
+import { StorageService } from '../setup/storage.service';
+import { ClothService } from './cloth.service';
+import { OutfitService } from './outfit.service';
+import { ActivityLog } from '../model/activity.model';
 
-const KEY = StorageService.KEYS.ACTIVITY_LOGS;
+interface ActivityData {
+  date?: string;
+  time?: string;
+  type: 'outfit' | 'individual';
+  outfitId?: string;
+  clothIds?: string[];
+  status?: 'worn' | 'planned';
+  notes?: string;
+}
 
-const getClothIdsForActivity = async (activity) => {
+const getClothIdsForActivity = async (activity: ActivityLog): Promise<string[]> => {
   if (!activity) return [];
 
   if (activity.type === 'outfit' && activity.outfitId) {
@@ -23,7 +31,7 @@ const getClothIdsForActivity = async (activity) => {
   return [];
 };
 
-const applyWearCountsForActivity = async (activity) => {
+const applyWearCountsForActivity = async (activity: ActivityLog): Promise<void> => {
   const clothIds = await getClothIdsForActivity(activity);
   for (const clothId of clothIds) {
     await ClothService.incrementWearCount(clothId);
@@ -31,46 +39,41 @@ const applyWearCountsForActivity = async (activity) => {
 };
 
 export const ActivityLogService = {
-  async getAll() {
-    return StorageService.getAll(KEY);
+  async getAll(): Promise<ActivityLog[]> {
+    return StorageService.getAll(StorageService.KEYS.ACTIVITY_LOGS);
   },
 
-  async getById(id) {
-    const log = await StorageService.getById(KEY, id);
+  async getById(id: string): Promise<ActivityLog | null> {
+    const log = await StorageService.getById<ActivityLog>(StorageService.KEYS.ACTIVITY_LOGS, id);
     return log || null;
   },
 
-  async getByDate(date) {
+  async getByDate(date: string): Promise<ActivityLog[]> {
     const logs = await this.getAll();
-    // Assumes date is in 'YYYY-MM-DD' format
     return logs.filter(log => log.date === date);
   },
 
   /**
    * Logs a user activity (wearing an outfit or individual clothes)
    * and updates the wear count for each item.
-   * @param {object} activityData - The activity details.
-   * @returns {object} The new log entry.
    */
-  async logActivity(activityData) {
-    const logs = await this.getAll();
+  async logActivity(activityData: ActivityData): Promise<ActivityLog> {
     const status = activityData?.status || 'worn';
     const now = new Date();
-    const newLog = {
+    const newLog: ActivityLog = {
       id: uuidv4(),
-      // Default to today's date in YYYY-MM-DD format
-      date: new Date().toISOString().split('T')[0],
-      notes: '',
-      ...activityData, // User-provided data overrides defaults
-      time:
-        activityData?.time ||
-        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+      date: activityData.date || new Date().toISOString().split('T')[0],
+      notes: activityData.notes || '',
+      time: activityData?.time || `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
       status,
       appliedWearCounts: status === 'worn',
       createdAt: now.toISOString(),
+      type: activityData.type,
+      outfitId: activityData.outfitId,
+      clothIds: activityData.clothIds,
     };
 
-    await StorageService.add(KEY, newLog);
+    await StorageService.add(StorageService.KEYS.ACTIVITY_LOGS, newLog);
 
     if (newLog.status === 'worn') {
       await applyWearCountsForActivity(newLog);
@@ -79,7 +82,7 @@ export const ActivityLogService = {
     return newLog;
   },
 
-  async update(id, updates) {
+  async update(id: string, updates: Partial<ActivityLog>): Promise<ActivityLog | null> {
     const existing = await this.getById(id);
     if (!existing) {
       return null;
@@ -100,14 +103,12 @@ export const ActivityLogService = {
       nextLog.appliedWearCounts = true;
     }
 
-    await StorageService.update(KEY, id, nextLog);
-    return nextLog;
+    const updated = await StorageService.put(StorageService.KEYS.ACTIVITY_LOGS, nextLog);
+    return updated;
   },
 
-  async remove(id) {
-    // Note: Removing an activity does NOT reverse the wear count increment.
-    // This is a design choice for simplicity.
-    await StorageService.remove(KEY, id);
+  async remove(id: string): Promise<boolean> {
+    await StorageService.remove(StorageService.KEYS.ACTIVITY_LOGS, id);
     return true;
   },
 };

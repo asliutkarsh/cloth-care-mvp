@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { LaundryService } from '../services';
+import { LaundryService } from '../services/logic';
 
 export const useLaundryStore = create((set, get) => ({
   // STATE

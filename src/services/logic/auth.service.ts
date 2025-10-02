@@ -1,19 +1,39 @@
-// src/services/authService.js
-import { UserService } from "./userService.js";
-import { SetupService } from "./setupService.js";
+import { UserService } from '../crud/user.service';
+import { SetupService } from '../setup/setup.service.js';
 import { v4 as uuidv4 } from 'uuid';
+import { User } from '../model/user.model';
+
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+interface SignupCredentials {
+  name: string;
+  email: string;
+  password: string;
+}
+
+interface MockUser {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+}
 
 const USERS_KEY = 'wardrobe_users';
 
-const getMockUsers = () => {
-  return JSON.parse(localStorage.getItem(USERS_KEY)) || [];
+const getMockUsers = (): MockUser[] => {
+  const users = localStorage.getItem(USERS_KEY);
+  return users ? JSON.parse(users) : [];
 };
-const setMockUsers = (users) => {
+
+const setMockUsers = (users: MockUser[]): void => {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 };
 
 export const AuthService = {
-  async signup(credentials) {
+  async signup(credentials: SignupCredentials): Promise<User> {
     const { name, email, password } = credentials;
     const users = getMockUsers();
 
@@ -21,20 +41,20 @@ export const AuthService = {
       throw new Error('User with this email already exists.');
     }
 
-    const newUser = { id: uuidv4(), name, email, password };
+    const newUser: MockUser = { id: uuidv4(), name, email, password };
     setMockUsers([...users, newUser]);
 
     // Store user data in IndexedDB as well for persistence
     try {
-      await UserService.setUser({ id: 'user', email: newUser.email, name: newUser.name });
+      await UserService.setUser({ email: newUser.email, name: newUser.name });
     } catch (error) {
       console.error('Failed to store user in IndexedDB:', error);
     }
 
-    return newUser;
+    return { id: newUser.id, name: newUser.name, email: newUser.email };
   },
 
-  async login(credentials) {
+  async login(credentials: LoginCredentials): Promise<User> {
     const { email, password } = credentials;
     let users = getMockUsers();
 
@@ -49,7 +69,7 @@ export const AuthService = {
       throw new Error("Invalid credentials");
     }
 
-    const userToSet = { id: 'user', email: foundUser.email, name: foundUser.name };
+    const userToSet: User = { id: 'user', email: foundUser.email, name: foundUser.name };
 
     // Store user data in IndexedDB for persistence
     try {
@@ -61,8 +81,8 @@ export const AuthService = {
     return userToSet;
   },
 
-  async demoLogin() {
-    const demoCredentials = {
+  async demoLogin(): Promise<User> {
+    const demoCredentials: LoginCredentials = {
       email: 'demo@cloth.com',
       password: 'demo123'
     };
@@ -70,7 +90,7 @@ export const AuthService = {
     return await this.login(demoCredentials);
   },
 
-  async getCurrentUser() {
+  async getCurrentUser(): Promise<User | null> {
     try {
       return await UserService.getCurrentUser();
     } catch (error) {
@@ -79,7 +99,7 @@ export const AuthService = {
     }
   },
 
-  async logout() {
+  async logout(): Promise<boolean> {
     try {
       await UserService.clearUser();
       return true;
@@ -89,7 +109,7 @@ export const AuthService = {
     }
   },
 
-  async initializeUserSession() {
+  async initializeUserSession(): Promise<void> {
     await SetupService.initialize();
   },
 };

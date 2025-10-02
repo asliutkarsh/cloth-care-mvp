@@ -2,11 +2,13 @@ import { create } from 'zustand'
 import {
   ClothService,
   CategoryService,
-  LaundryService,
   ActivityLogService,
-  AnalyticsService,
   OutfitService,
-} from '../services'
+} from '../services/crud';  
+import {
+  LaundryService,
+  AnalyticsService,
+} from '../services/logic';  // All logic-related services
 
 export const useWardrobeStore = create((set, get) => ({
   clothes: [],

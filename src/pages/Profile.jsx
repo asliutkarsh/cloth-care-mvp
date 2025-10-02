@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useWardrobeStore } from '../stores/useWardrobeStore';
-import { AnalyticsService } from '../services';
 import { Settings, Calendar, LogOut, User, Shirt, Layers } from 'lucide-react';
 import { Button, SettingsMenuItem } from '../components/ui';
 import ConfirmationModal from '../components/modal/ConfirmationModal';

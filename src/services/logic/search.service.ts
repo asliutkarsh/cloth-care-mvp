@@ -1,14 +1,19 @@
-// services/SearchService.js
-import { ClothService } from './clothService.js';
-import { OutfitService } from './outfitService.js';
+import { ClothService } from '../crud/cloth.service';
+import { OutfitService } from '../crud/outfit.service';
+import { Cloth } from '../model/cloth.model';
+import { Outfit } from '../model/outfit.model';
+
+interface SearchResults {
+  clothes: Cloth[];
+  outfits: Outfit[];
+  totalResults: number;
+}
 
 export const SearchService = {
   /**
    * Searches across both clothes and outfits for a matching term.
-   * @param {string} searchTerm - The text to search for.
-   * @returns {object} An object containing arrays of matching clothes and outfits.
    */
-  async searchAll(searchTerm) {
+  async searchAll(searchTerm: string): Promise<SearchResults> {
     const term = searchTerm.toLowerCase();
     if (!term) {
       return { clothes: [], outfits: [], totalResults: 0 };
@@ -38,10 +43,8 @@ export const SearchService = {
 
   /**
    * Searches specifically within clothes.
-   * @param {string} searchTerm - The text to search for.
-   * @returns {Array} An array of matching cloth objects.
    */
-  async searchClothes(searchTerm) {
+  async searchClothes(searchTerm: string): Promise<Cloth[]> {
     const term = searchTerm.toLowerCase();
     if (!term) return [];
 

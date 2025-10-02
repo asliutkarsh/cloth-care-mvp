@@ -9,7 +9,7 @@ export default function OutfitCard({ outfit }) {
   const { updateOutfit } = useWardrobeStore()
 
   return (
-    <motion.button
+    <motion.div
       onClick={() => navigate(`/wardrobe/outfit/${outfit.id}`)}
       whileHover={{ scale: 1.03 }}
       transition={{ type: 'spring', stiffness: 300 }}
@@ -36,6 +36,6 @@ export default function OutfitCard({ outfit }) {
           {outfit.clothIds?.length || 0} {outfit.clothIds?.length === 1 ? 'item' : 'items'}
         </p>
       </div>
-    </motion.button>
+    </motion.div>
   )
 }

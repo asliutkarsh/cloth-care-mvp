@@ -1,15 +1,37 @@
-// services/laundryService.js
-import { ClothService } from "./clothService.js";
+import { ClothService } from '../crud/cloth.service';
+import { Cloth } from '../model/cloth.model';
+
+interface WashResult {
+  totalWashed: number;
+  needsPressingCount: number;
+  washedClothes: Cloth[];
+  needsPressing: Cloth[];
+}
+
+interface PressResult {
+  totalPressed: number;
+  pressedClothes: Cloth[];
+}
+
+interface MarkDirtyResult {
+  totalMarked: number;
+  marked: Cloth[];
+}
+
+interface LaundryStatus {
+  dirty: Cloth[];
+  needsPressing: Cloth[];
+  dirtyCount: number;
+  pressingCount: number;
+}
 
 export const LaundryService = {
   /**
    * Washes a list of dirty clothes, updating their status accordingly.
-   * @param {string[]} clothIds - An array of cloth IDs to be washed.
-   * @returns {object} A summary of the operation.
    */
-  async washClothes(clothIds) {
-    const washedClothes = [];
-    const needsPressing = [];
+  async washClothes(clothIds: string[]): Promise<WashResult> {
+    const washedClothes: Cloth[] = [];
+    const needsPressing: Cloth[] = [];
 
     for (const clothId of clothIds) {
       const cloth = await ClothService.getById(clothId);
@@ -42,11 +64,9 @@ export const LaundryService = {
 
   /**
    * Marks a list of clothes as pressed, changing their status to clean.
-   * @param {string[]} clothIds - An array of cloth IDs to be pressed.
-   * @returns {object} A summary of the operation.
    */
-  async pressClothes(clothIds) {
-    const pressedClothes = [];
+  async pressClothes(clothIds: string[]): Promise<PressResult> {
+    const pressedClothes: Cloth[] = [];
     for (const clothId of clothIds) {
       const cloth = await ClothService.getById(clothId);
       if (cloth && cloth.status === ClothService.STATUSES.NEEDS_PRESSING) {
@@ -64,8 +84,8 @@ export const LaundryService = {
     };
   },
 
-  async markDirty(clothIds) {
-    const marked = [];
+  async markDirty(clothIds: string[]): Promise<MarkDirtyResult> {
+    const marked: Cloth[] = [];
     for (const clothId of clothIds) {
       const cloth = await ClothService.getById(clothId);
       if (cloth && cloth.status !== ClothService.STATUSES.DIRTY) {
@@ -86,7 +106,7 @@ export const LaundryService = {
   /**
    * Gets the current counts and lists of clothes needing laundry services.
    */
-  async getLaundryStatus() {
+  async getLaundryStatus(): Promise<LaundryStatus> {
     const dirty = await ClothService.getDirtyClothes();
     const needsPressing = await ClothService.getNeedsPressing();
     return {

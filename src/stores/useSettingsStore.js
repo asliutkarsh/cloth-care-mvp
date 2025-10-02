@@ -1,5 +1,7 @@
 import { create } from 'zustand';
-import { PreferenceService, BackupService, SetupService } from '../services';
+import { PreferenceService } from '../services/crud';
+import { BackupService } from '../services/logic';
+import { SetupService } from '../services/setup';
 
 export const useSettingsStore = create((set, get) => ({
   // =================================================================

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarRange, CheckCircle2, Luggage, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TripService } from '../services';
+import { TripService } from '../services/crud';
 import { useWardrobeStore } from '../stores/useWardrobeStore';
 import { format } from 'date-fns';
 import Modal from '../components/ui/Modal';

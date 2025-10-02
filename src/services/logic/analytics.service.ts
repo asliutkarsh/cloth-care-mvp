@@ -1,14 +1,35 @@
-// services/analyticsService.js
-import { ClothService } from "./clothService.js";
-import { OutfitService } from "./outfitService.js";
-import { ActivityLogService } from "./activityLogService.js";
-import { CategoryService } from "./categoryService.js";
+import { ClothService } from '../crud/cloth.service';
+import { OutfitService } from '../crud/outfit.service';
+import { ActivityLogService } from '../crud/activity.service';
+import { CategoryService } from '../crud/category.service';
+import { Cloth } from '../model/cloth.model';
+import { ActivityLog } from '../model/activity.model';
+import { Category } from '../model/category.model';
+
+interface WardrobeStats {
+  totalClothes: number;
+  totalOutfits: number;
+  totalActivities: number;
+  byStatus: {
+    clean: number;
+    dirty: number;
+    needsPressing: number;
+  };
+  mostUsedClothes: Cloth[];
+  leastUsedClothes: Cloth[];
+}
+
+interface CategoryUsage {
+  category: Category;
+  clothCount: number;
+  totalWears: number;
+}
 
 export const AnalyticsService = {
   /**
    * Provides a comprehensive overview of the wardrobe.
    */
-  async getWardrobeStats() {
+  async getWardrobeStats(): Promise<WardrobeStats> {
     const clothes = await ClothService.getAll();
     const outfits = await OutfitService.getAll();
     const activities = await ActivityLogService.getAll();
@@ -29,9 +50,8 @@ export const AnalyticsService = {
 
   /**
    * Sorts clothes by wear count to find the most used items.
-   * Note: Takes 'clothes' as an argument to be more efficient inside getWardrobeStats.
    */
-  getMostUsedClothes(clothes, limit = 10) {
+  getMostUsedClothes(clothes: Cloth[], limit = 10): Cloth[] {
     return [...clothes]
       .sort((a, b) => b.currentWearCount - a.currentWearCount)
       .slice(0, limit);
@@ -40,7 +60,7 @@ export const AnalyticsService = {
   /**
    * Sorts clothes by wear count to find the least used items.
    */
-  getLeastUsedClothes(clothes, limit = 10) {
+  getLeastUsedClothes(clothes: Cloth[], limit = 10): Cloth[] {
     return [...clothes]
       .sort((a, b) => a.currentWearCount - b.currentWearCount)
       .slice(0, limit);
@@ -49,23 +69,23 @@ export const AnalyticsService = {
   /**
    * Retrieves user activity within a specific number of days.
    */
-  async getActivityHistory(days = 30) {
+  async getActivityHistory(days = 30): Promise<ActivityLog[]> {
     const activities = await ActivityLogService.getAll();
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
 
     return activities
       .filter(activity => new Date(activity.createdAt) >= cutoffDate)
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   },
 
   /**
    * Calculates statistics on a per-category basis.
    */
-  async getCategoryUsage() {
+  async getCategoryUsage(): Promise<CategoryUsage[]> {
     const clothes = await ClothService.getAll();
     const categories = await CategoryService.getAll();
-    const usage = {};
+    const usage: { [key: string]: CategoryUsage } = {};
 
     for (const cat of categories) {
       const clothesInCategory = clothes.filter(c => c.categoryId === cat.id);

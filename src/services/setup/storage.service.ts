@@ -1,4 +1,3 @@
-// src/services/storageService.js
 import Dexie from 'dexie';
 
 // --- 1. Database Definition ---
@@ -13,10 +12,10 @@ export const KEYS = {
   ACTIVITY_LOGS: 'activity_logs',
   PREFERENCES: 'preferences',
   USER: 'user',
-};
+  AUDIT_LOGS: 'audit_logs',
+} as const;
 
 // --- 2. Database Schema ---
-// All tables use 'id' as the primary key. For preferences and user, 'id' will be a constant.
 db.version(1).stores({
   [KEYS.CATEGORIES]: 'id',
   [KEYS.CLOTHES]: 'id',
@@ -25,10 +24,11 @@ db.version(1).stores({
   [KEYS.ACTIVITY_LOGS]: 'id',
   [KEYS.PREFERENCES]: 'id',
   [KEYS.USER]: 'id',
+  [KEYS.AUDIT_LOGS]: 'id',
 });
 
 // --- 3. Data Migration from localStorage ---
-const migrateFromLocalStorage = async () => {
+const migrateFromLocalStorage = async (): Promise<void> => {
   const migrationFlag = 'wardrobe_migration_v1_complete';
   if (localStorage.getItem(migrationFlag)) {
     return; // Migration already done
@@ -36,14 +36,14 @@ const migrateFromLocalStorage = async () => {
 
   // Check if there's already data in the database (indicates partial migration or new install)
   try {
-    const existingUser = await db.user.get('user');
+    const existingUser = await (db as any)[KEYS.USER].get('user');
     if (existingUser) {
       localStorage.setItem(migrationFlag, 'true');
       return;
     }
 
-    const existingCategories = await db.categories.count();
-    const existingClothes = await db.clothes.count();
+    const existingCategories = await (db as any)[KEYS.CATEGORIES].count();
+    const existingClothes = await (db as any)[KEYS.CLOTHES].count();
     if (existingCategories > 0 || existingClothes > 0) {
       localStorage.setItem(migrationFlag, 'true');
       return;
@@ -65,11 +65,11 @@ const migrateFromLocalStorage = async () => {
       try {
         const oldData = JSON.parse(oldDataRaw);
         if (Array.isArray(oldData) && oldData.length > 0) {
-          await db[key].bulkPut(oldData);
+          await (db as any)[key].bulkPut(oldData);
         } else if (oldData && typeof oldData === 'object' && !Array.isArray(oldData)) {
           // Handle single-object keys like 'preferences'
           const singleObjectId = key; // e.g., 'preferences'
-          await db[key].put({ id: singleObjectId, ...oldData });
+          await (db as any)[key].put({ id: singleObjectId, ...oldData });
         }
         // Remove old key after successful migration
         localStorage.removeItem(`${oldPrefix}${key}`);
@@ -85,48 +85,57 @@ const migrateFromLocalStorage = async () => {
 // Run migration on script load
 migrateFromLocalStorage();
 
-
 // --- 4. New Service Methods ---
 export const StorageService = {
   KEYS,
 
-  async getAll(tableName) {
-    return db[tableName].toArray();
+  async getAll<T>(tableName: string): Promise<T[]> {
+    return (db as any)[tableName].toArray();
   },
 
-  async getById(tableName, id) {
-    return db[tableName].get(id);
+  async getById<T>(tableName: string, id: string): Promise<T | undefined> {
+    return (db as any)[tableName].get(id);
   },
 
-  async add(tableName, item) {
-    await db[tableName].add(item);
+  async add<T>(tableName: string, item: T): Promise<T> {
+    await (db as any)[tableName].add(item);
     return item;
   },
 
-  async put(tableName, item) {
-    await db[tableName].put(item);
+  async put<T>(tableName: string, item: T): Promise<T> {
+    await (db as any)[tableName].put(item);
     return item;
   },
 
-  async update(tableName, id, updates) {
-    await db[tableName].update(id, updates);
-    return this.getById(tableName, id);
+  async update<T>(tableName: string, id: string, updates: Partial<T>): Promise<T | undefined> {
+    try {
+      await (db as any)[tableName].update(id, updates);
+      const updated: T | undefined = await this.getById<T>(tableName, id);
+      return updated;
+    } catch (error) {
+      // If update fails (item doesn't exist), return undefined
+      return undefined;
+    }
   },
-  
-  async bulkUpdate(tableName, items) {
-    await db[tableName].bulkPut(items);
+
+  async bulkUpdate<T>(tableName: string, items: T[]): Promise<T[]> {
+    await (db as any)[tableName].bulkPut(items);
     return items;
   },
 
-  async remove(tableName, id) {
-    return db[tableName].delete(id);
-  },
-  
-  async bulkRemove(tableName, ids) {
-    return db[tableName].bulkDelete(ids);
+  async remove(tableName: string, id: string): Promise<void> {
+    return (db as any)[tableName].delete(id);
   },
 
-  async clear(tableName) {
-    return db[tableName].clear();
+  async bulkRemove(tableName: string, ids: string[]): Promise<void> {
+    return (db as any)[tableName].bulkDelete(ids);
+  },
+
+  async clear(tableName: string): Promise<void> {
+    return (db as any)[tableName].clear();
+  },
+
+  async clearAll(): Promise<void> {
+    await Promise.all(Object.values(KEYS).map((table) => (db as any)[table].clear()));
   },
 };

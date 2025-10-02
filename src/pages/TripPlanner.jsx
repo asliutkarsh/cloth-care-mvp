@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle, CalendarRange, CheckCircle2, ChevronLeft, Luggage, MinusCircle, PlusCircle } from 'lucide-react';
-import { TripService } from '../services';
+import { TripService } from '../services/crud';
 import { useWardrobeStore } from '../stores/useWardrobeStore';
 import { useToast } from '../context/ToastProvider.jsx';
 import Button from '../components/ui/Button';

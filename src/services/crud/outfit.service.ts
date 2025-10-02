@@ -1,25 +1,33 @@
-// services/outfitService.js
 import { v4 as uuidv4 } from 'uuid';
-import { StorageService } from "./storageService.js";
-import { ClothService } from "./clothService.js"; // Needed for validation and helpers
-import { PreferenceService } from "./preferenceService.js";
+import { StorageService } from '../setup/storage.service';
+import { ClothService } from './cloth.service';
+import { PreferenceService } from './preference.service';
+import { Outfit } from '../model/outfit.model';
+import { Cloth } from '../model/cloth.model';
 
-const KEY = StorageService.KEYS.OUTFITS;
+interface OutfitData {
+  name: string;
+  clothIds?: string[];
+  description?: string;
+  tags?: string[];
+  occasion?: 'work' | 'casual' | 'formal' | 'sport';
+  favorite?: boolean;
+}
 
 export const OutfitService = {
-  async getAll() {
-    return StorageService.getAll(KEY);
+  async getAll(): Promise<Outfit[]> {
+    return StorageService.getAll<Outfit>(StorageService.KEYS.OUTFITS);
   },
 
-  async getById(id) {
-    const outfit = await StorageService.getById(KEY, id);
+  async getById(id: string): Promise<Outfit | null> {
+    const outfit = await StorageService.getById<Outfit>(StorageService.KEYS.OUTFITS, id);
     return outfit || null;
   },
 
   /**
    * Adds a new outfit with default values and validation.
    */
-  async add(outfitData) {
+  async add(outfitData: OutfitData): Promise<Outfit> {
     // Validate that all cloth IDs exist
     for (const clothId of outfitData.clothIds || []) {
       const clothExists = await ClothService.getById(clothId);
@@ -29,23 +37,26 @@ export const OutfitService = {
     }
 
     const rawTags = Array.isArray(outfitData.tags) ? outfitData.tags : [];
-    const normalizedTags = [...new Set(rawTags.map(t => {
+    const normalizedTags: string[] = [...new Set(rawTags.map(t => {
       const s = (t || '').trim();
       if (!s) return null;
       const withHash = s.startsWith('#') ? s : `#${s}`;
       return withHash.toLowerCase();
-    }).filter(Boolean))];
-    const newOutfit = {
+    }).filter((tag): tag is string => tag !== null))];
+        
+    const newOutfit: Outfit = {
       id: uuidv4(),
-      description: '',
-      clothIds: [],
-      image: null,
+      name: outfitData.name,
+      clothIds: outfitData.clothIds || [],
+      description: outfitData.description || '',
       tags: normalizedTags,
-      ...outfitData, // User-provided data overrides defaults
+      occasion: outfitData.occasion,
+      favorite: outfitData.favorite ?? false,
       createdAt: new Date().toISOString(),
     };
 
-    await StorageService.add(KEY, newOutfit);
+    await StorageService.add(StorageService.KEYS.OUTFITS, newOutfit);
+
     // Update tag suggestions and stats in preferences
     const prefs = await PreferenceService.getPreferences();
     const existing = prefs.outfitTagSuggestions || [];
@@ -57,27 +68,28 @@ export const OutfitService = {
       stats[t] = { count: (prev.count || 0) + 1, lastUsed: now };
     }
     await PreferenceService.updatePreferences({ outfitTagSuggestions: merged, outfitTagStats: stats });
+
     return newOutfit;
   },
 
-  async update(id, updates) {
-    const existing = await StorageService.getById(KEY, id);
+  async update(id: string, updates: Partial<Outfit>): Promise<Outfit | null> {
+    const existing = await StorageService.getById<Outfit>(StorageService.KEYS.OUTFITS, id);
     if (!existing) {
       return null;
     }
 
     const normalizedUpdates = { ...updates };
     if (Array.isArray(updates.tags)) {
-      const normalized = [...new Set(updates.tags.map(t => {
+      const normalized: string[] = [...new Set(updates.tags.map(t => {
         const s = (t || '').trim();
         if (!s) return null;
         const withHash = s.startsWith('#') ? s : `#${s}`;
         return withHash.toLowerCase();
-      }).filter(Boolean))];
+      }).filter((tag): tag is string => tag !== null))];
       normalizedUpdates.tags = normalized;
     }
-
-    const updatedOutfit = await StorageService.update(KEY, id, normalizedUpdates);
+    
+    const updatedOutfit = await StorageService.update(StorageService.KEYS.OUTFITS, id, normalizedUpdates);
 
     if (updatedOutfit?.tags?.length) {
       const prefs = await PreferenceService.getPreferences();
@@ -91,20 +103,18 @@ export const OutfitService = {
       }
       await PreferenceService.updatePreferences({ outfitTagSuggestions: merged, outfitTagStats: stats });
     }
-    return updatedOutfit;
+    return updatedOutfit || null;
   },
 
-  async remove(id) {
-    await StorageService.remove(KEY, id);
+  async remove(id: string): Promise<boolean> {
+    await StorageService.remove(StorageService.KEYS.OUTFITS, id);
     return true;
   },
 
   /**
    * Retrieves all the full cloth objects for a given outfit.
-   * @param {string} outfitId - The ID of the outfit.
-   * @returns {Array} An array of cloth objects.
    */
-  async getClothesInOutfit(outfitId) {
+  async getClothesInOutfit(outfitId: string): Promise<Cloth[]> {
     const outfit = await this.getById(outfitId);
     if (!outfit) return [];
 
@@ -112,6 +122,6 @@ export const OutfitService = {
       outfit.clothIds.map(clothId => ClothService.getById(clothId))
     );
 
-    return clothes.filter(Boolean); // Filter out any nulls if a cloth was deleted
+    return clothes.filter((cloth): cloth is Cloth => cloth !== null);
   },
 };

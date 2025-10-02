@@ -1,28 +1,74 @@
-import { ClothService } from './clothService.js';
-import { OutfitService } from './outfitService.js';
-import { ActivityLogService } from './activityLogService.js';
-import { CategoryService } from './categoryService.js';
+import { ClothService } from '../crud/cloth.service';
+import { OutfitService } from '../crud/outfit.service';
+import { ActivityLogService } from '../crud/activity.service';
+import { CategoryService } from '../crud/category.service';
+import { Cloth } from '../model/cloth.model';
+import { Outfit } from '../model/outfit.model';
+
+interface InsightsData {
+  summary: {
+    totalClothes: number;
+    totalOutfits: number;
+    totalWardrobeValue: number;
+    averagePrice: number;
+    averageCostPerWear: number;
+    sustainabilityScore: number;
+  };
+  categoryBreakdown: Array<{ label: string; value: number }>;
+  colorPalette: Array<{ label: string; value: number }>;
+  brandDistribution: Array<{ label: string; value: number }>;
+  fabricFocus: Array<{ label: string; value: number }>;
+  newestAdditions: Cloth[];
+  goToItems: {
+    goToItem: { cloth: Cloth; count: number } | null;
+    top: Array<{ cloth: Cloth; count: number }>;
+    mostRepeatedOutfit: { outfit: Outfit; count: number } | null;
+    favoriteGoToOutfit: { outfit: Outfit; count: number } | null;
+    mostWornColor: { label: string; value: number } | null;
+    uniform: { combo: string; count: number } | null;
+    monthlyActivity: Array<{ month: string; count: number }>;
+  };
+  valueAndSustainability: {
+    bestValueItem: { cloth: Cloth; costPerWear: number } | null;
+    worstValueItem: { cloth: Cloth; costPerWear: number } | null;
+    averageCostPerWear: number;
+    workhorseItems: Array<{ cloth: Cloth; costPerWear: number; wears: number }>;
+    mostVersatileCloth: { cloth: Cloth; usage: number } | null;
+    sustainabilityScore: number;
+    closetGhosts: Array<{ cloth: Cloth; lastWorn: Date | null }>;
+    neverWorn: Cloth[];
+  };
+  financial: {
+    averagePrice: number;
+    totalWardrobeValue: number;
+    mostExpensiveItem: { cloth: Cloth; cost: number } | null;
+    categorySpend: Array<{ label: string; value: number }>;
+    brandSpend: Array<{ label: string; value: number }>;
+    seasonalSpend: Array<{ label: string; value: number }>;
+  };
+  forgottenFavorites: Array<{ cloth: Cloth; lastWorn: Date | null }>;
+}
 
 const SEASONS = ['Winter', 'Spring', 'Summer', 'Autumn'];
 
-const toCurrency = (value) => {
+const toCurrency = (value: unknown): number => {
   const amount = Number(value) || 0;
   return Number.isFinite(amount) ? amount : 0;
 };
 
-const safeDate = (value) => {
+const safeDate = (value: unknown): Date | null => {
   if (!value) return null;
-  const date = new Date(value);
+  const date = new Date(value as string);
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const normalizeKey = (value, fallback) => {
+const normalizeKey = (value: unknown, fallback: string): string => {
   if (!value) return fallback;
   const trimmed = String(value).trim();
   return trimmed.length ? trimmed : fallback;
 };
 
-const mapToSortedEntries = (map, limit, filterEmpty = true) =>
+const mapToSortedEntries = (map: Map<string, number>, limit: number, filterEmpty = true) =>
   [...map.entries()]
     .filter(([label]) => (filterEmpty ? Boolean(label) : true))
     .sort((a, b) => b[1] - a[1])
@@ -30,7 +76,7 @@ const mapToSortedEntries = (map, limit, filterEmpty = true) =>
     .map(([label, value]) => ({ label, value }));
 
 export const InsightsService = {
-  async getInsights() {
+  async getInsights(): Promise<InsightsData> {
     const [clothes, outfits, activities, categories] = await Promise.all([
       ClothService.getAll(),
       OutfitService.getAll(),
@@ -45,25 +91,25 @@ export const InsightsService = {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    const wearStats = new Map();
-    const outfitWearStats = new Map();
-    const monthlyWear = new Map();
-    const colorTally = new Map();
-    const brandTally = new Map();
-    const fabricTally = new Map();
-    const brandSpend = new Map();
-    const categorySpend = new Map();
-    const seasonalSpend = new Map();
-    const uniformCombos = new Map();
+    const wearStats = new Map<string, { count: number; lastWorn: Date | null }>();
+    const outfitWearStats = new Map<string, { count: number }>();
+    const monthlyWear = new Map<string, number>();
+    const colorTally = new Map<string, number>();
+    const brandTally = new Map<string, number>();
+    const fabricTally = new Map<string, number>();
+    const brandSpend = new Map<string, number>();
+    const categorySpend = new Map<string, number>();
+    const seasonalSpend = new Map<string, number>();
+    const uniformCombos = new Map<string, number>();
 
-    const registerMonthlyWear = (dateString) => {
+    const registerMonthlyWear = (dateString: string | undefined): void => {
       const date = safeDate(dateString);
       if (!date) return;
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       monthlyWear.set(key, (monthlyWear.get(key) || 0) + 1);
     };
 
-    const registerClothWear = (clothId, dateString) => {
+    const registerClothWear = (clothId: string, dateString: string | undefined): void => {
       if (!clothId) return;
       const stats = wearStats.get(clothId) || { count: 0, lastWorn: null };
       stats.count += 1;
@@ -74,11 +120,11 @@ export const InsightsService = {
       wearStats.set(clothId, stats);
     };
 
-    const comboKeyForCloths = (clothIds) => {
+    const comboKeyForCloths = (clothIds: string[]): string | null => {
       const comboCategories = clothIds
         .map((id) => clothMap.get(id))
         .filter(Boolean)
-        .map((cloth) => normalizeKey(categoryMap.get(cloth.categoryId)?.name, 'Other'));
+        .map((cloth) => normalizeKey(categoryMap.get(cloth!.categoryId)?.name, 'Other'));
       if (!comboCategories.length) return null;
       const unique = Array.from(new Set(comboCategories)).sort();
       return unique.join(' + ');
@@ -88,7 +134,7 @@ export const InsightsService = {
       const dateString = activity.createdAt || activity.date;
       registerMonthlyWear(dateString);
 
-      let clothIds = [];
+      let clothIds: string[] = [];
       if (activity.type === 'outfit' && activity.outfitId) {
         const outfit = outfitMap.get(activity.outfitId);
         if (outfit) {
@@ -112,15 +158,15 @@ export const InsightsService = {
     const totalWardrobeValue = clothes.reduce((sum, cloth) => sum + toCurrency(cloth.cost), 0);
     const averagePrice = clothes.length ? totalWardrobeValue / clothes.length : 0;
 
-    let bestValueItem = null;
-    let worstValueItem = null;
+    let bestValueItem: { cloth: Cloth; costPerWear: number } | null = null;
+    let worstValueItem: { cloth: Cloth; costPerWear: number } | null = null;
     let lowestCPW = Number.POSITIVE_INFINITY;
     let highestCPW = Number.NEGATIVE_INFINITY;
 
     let totalWearCount = 0;
-    const neverWorn = [];
-    const closetGhosts = [];
-    const workhorseItems = [];
+    const neverWorn: Cloth[] = [];
+    const closetGhosts: Array<{ cloth: Cloth; lastWorn: Date | null }> = [];
+    const workhorseItems: Array<{ cloth: Cloth; costPerWear: number; wears: number }> = [];
 
     for (const cloth of clothes) {
       const wears = wearStats.get(cloth.id)?.count ?? cloth.currentWearCount ?? 0;
@@ -179,7 +225,7 @@ export const InsightsService = {
       if (!a.lastWorn && !b.lastWorn) return 0;
       if (!a.lastWorn) return -1;
       if (!b.lastWorn) return 1;
-      return a.lastWorn - b.lastWorn;
+      return a.lastWorn.getTime() - b.lastWorn.getTime();
     });
 
     const averageCostPerWear = totalWearCount > 0 ? totalWardrobeValue / totalWearCount : 0;
@@ -189,7 +235,7 @@ export const InsightsService = {
 
     const topGoToItems = [...wearStats.entries()]
       .map(([id, stat]) => ({ cloth: clothMap.get(id), count: stat.count }))
-      .filter((entry) => entry.cloth)
+      .filter((entry): entry is { cloth: Cloth; count: number } => entry.cloth !== undefined)
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
@@ -197,7 +243,7 @@ export const InsightsService = {
 
     const outfitWearList = [...outfitWearStats.entries()]
       .map(([id, stat]) => ({ outfit: outfitMap.get(id), count: stat.count }))
-      .filter((entry) => entry.outfit)
+      .filter((entry): entry is { outfit: Outfit; count: number } => entry.outfit !== undefined)
       .sort((a, b) => b.count - a.count);
 
     const mostRepeatedOutfit = outfitWearList[0] || null;
@@ -219,7 +265,7 @@ export const InsightsService = {
         const key = normalizeKey(categoryMap.get(cloth.categoryId)?.name, 'Uncategorised');
         acc.set(key, (acc.get(key) || 0) + 1);
         return acc;
-      }, new Map()),
+      }, new Map<string, number>()),
       10,
     );
 
@@ -228,7 +274,7 @@ export const InsightsService = {
     const fabricFocus = mapToSortedEntries(fabricTally, 6);
 
     const newestAdditions = [...clothes]
-      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
       .slice(0, 5);
 
     return {
