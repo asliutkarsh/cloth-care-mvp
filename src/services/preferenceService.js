@@ -1,8 +1,9 @@
 // services/PreferenceService.js
 import { StorageService } from './storageService.js';
 
-// Use a unique key for user preferences in storage
-const KEY = StorageService.KEYS.PREFERENCES;
+const PREF_TABLE = StorageService.KEYS.PREFERENCES;
+const PREF_ID = 'preferences';
+
 
 // Default preferences structure
 
@@ -12,20 +13,14 @@ const DEFAULT_PREFERENCES = {
     dayOfWeek: 0,
     time: '09:00',
   },
-  // Settings-backed quick filters for Wardrobe
   filterChipSettings: {
-    // Clothes: default to empty; can be populated with category IDs or special keys like 'status-clean'
     clothes: [],
-    // Outfits: user-defined tag strings like '#summer'
     outfits: [],
   },
-  // Suggestions built from previously used outfit tags
   outfitTagSuggestions: [],
-  // Usage stats for outfit tags for ranking suggestions
   outfitTagStats: {
     // '#summer': { count: 0, lastUsed: 'ISO' }
   },
-  // Wardrobe defaults persisted
   wardrobeDefaults: {
     viewMode: 'grid',
     sortBy: 'newest',
@@ -47,8 +42,8 @@ export const PreferenceService = {
    * Retrieves the user's preferences, returning defaults if none are set.
    */
   async getPreferences() {
-    const storedPrefs = await StorageService.get(KEY);
-    // Merge stored preferences with defaults to ensure all keys are present
+    const stored = await StorageService.getById(PREF_TABLE, PREF_ID);
+    const { id, ...storedPrefs } = stored || {};
     return { ...DEFAULT_PREFERENCES, ...storedPrefs };
   },
 
@@ -86,7 +81,11 @@ export const PreferenceService = {
       },
     };
 
-    await StorageService.set(KEY, updatedPrefs);
+    const dataToStore = { id: PREF_ID, ...updatedPrefs };
+    let saved = await StorageService.update(PREF_TABLE, PREF_ID, dataToStore);
+    if (!saved) {
+      await StorageService.add(PREF_TABLE, dataToStore);
+    }
     return updatedPrefs;
   },
 };

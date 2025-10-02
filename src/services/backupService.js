@@ -36,20 +36,20 @@ export const BackupService = {
       }
 
       // Clear existing data first
-      await StorageService.clear();
+      await StorageService.clearAll();
 
       // Import data for each key found in the backup
       if (data[StorageService.KEYS.CATEGORIES]) {
-        await StorageService.set(StorageService.KEYS.CATEGORIES, data[StorageService.KEYS.CATEGORIES]);
+        await StorageService.bulkUpdate(StorageService.KEYS.CATEGORIES, data[StorageService.KEYS.CATEGORIES]);
       }
       if (data[StorageService.KEYS.CLOTHES]) {
-        await StorageService.set(StorageService.KEYS.CLOTHES, data[StorageService.KEYS.CLOTHES]);
+        await StorageService.bulkUpdate(StorageService.KEYS.CLOTHES, data[StorageService.KEYS.CLOTHES]);
       }
       if (data[StorageService.KEYS.OUTFITS]) {
-        await StorageService.set(StorageService.KEYS.OUTFITS, data[StorageService.KEYS.OUTFITS]);
+        await StorageService.bulkUpdate(StorageService.KEYS.OUTFITS, data[StorageService.KEYS.OUTFITS]);
       }
       if (data[StorageService.KEYS.ACTIVITY_LOGS]) {
-        await StorageService.set(StorageService.KEYS.ACTIVITY_LOGS, data[StorageService.KEYS.ACTIVITY_LOGS]);
+        await StorageService.bulkUpdate(StorageService.KEYS.ACTIVITY_LOGS, data[StorageService.KEYS.ACTIVITY_LOGS]);
       }
 
       return { success: true, message: 'Data imported successfully!' };

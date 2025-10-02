@@ -1,7 +1,7 @@
-import { StorageService } from './storageService';
+import { StorageService } from './storageService.js';
 import { v4 as uuid } from 'uuid';
 
-const STORAGE_KEY = StorageService.KEYS.TRIPS;
+const KEY = StorageService.KEYS.TRIPS;
 
 const byUpcoming = (a, b) => new Date(a.startDate) - new Date(b.startDate);
 
@@ -21,42 +21,33 @@ const withDefaults = (trip) => ({
 
 export const TripService = {
   async getAll() {
-    const trips = (await StorageService.get(STORAGE_KEY)) || [];
-    return trips.sort(byUpcoming);
+    const trips = await StorageService.getAll(KEY);
+    return [...trips].sort(byUpcoming);
   },
 
   async getById(id) {
-    const trips = await this.getAll();
-    return trips.find((trip) => trip.id === id) || null;
+    const trip = await StorageService.getById(KEY, id);
+    return trip || null;
   },
 
   async create(tripData) {
-    const trips = await this.getAll();
     const trip = withDefaults(tripData);
-    trips.push(trip);
-    await StorageService.set(STORAGE_KEY, trips);
+    await StorageService.add(KEY, trip);
     return trip;
   },
 
   async update(id, updates) {
-    const trips = await this.getAll();
-    let updatedTrip = null;
-    const nextTrips = trips.map((trip) => {
-      if (trip.id !== id) return trip;
-      updatedTrip = { ...trip, ...updates };
-      return updatedTrip;
-    });
-    if (!updatedTrip) {
+    const existing = await this.getById(id);
+    if (!existing) {
       return null;
     }
-    await StorageService.set(STORAGE_KEY, nextTrips.sort(byUpcoming));
+    const updatedTrip = { ...existing, ...updates };
+    await StorageService.put(KEY, updatedTrip);
     return updatedTrip;
   },
 
   async remove(id) {
-    const trips = await this.getAll();
-    const nextTrips = trips.filter((trip) => trip.id !== id);
-    await StorageService.set(STORAGE_KEY, nextTrips);
+    await StorageService.remove(KEY, id);
     return true;
   },
 
@@ -102,6 +93,6 @@ export const TripService = {
   },
 
   async clearAll() {
-    await StorageService.set(STORAGE_KEY, []);
+    await StorageService.clear(KEY);
   },
 };

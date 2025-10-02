@@ -8,12 +8,12 @@ const KEY = StorageService.KEYS.OUTFITS;
 
 export const OutfitService = {
   async getAll() {
-    return (await StorageService.get(KEY)) || [];
+    return StorageService.getAll(KEY);
   },
 
   async getById(id) {
-    const outfits = await this.getAll();
-    return outfits.find(o => o.id === id) || null;
+    const outfit = await StorageService.getById(KEY, id);
+    return outfit || null;
   },
 
   /**
@@ -28,7 +28,6 @@ export const OutfitService = {
       }
     }
 
-    const outfits = await this.getAll();
     const rawTags = Array.isArray(outfitData.tags) ? outfitData.tags : [];
     const normalizedTags = [...new Set(rawTags.map(t => {
       const s = (t || '').trim();
@@ -46,8 +45,7 @@ export const OutfitService = {
       createdAt: new Date().toISOString(),
     };
 
-    outfits.push(newOutfit);
-    await StorageService.set(KEY, outfits);
+    await StorageService.add(KEY, newOutfit);
     // Update tag suggestions and stats in preferences
     const prefs = await PreferenceService.getPreferences();
     const existing = prefs.outfitTagSuggestions || [];
@@ -63,26 +61,24 @@ export const OutfitService = {
   },
 
   async update(id, updates) {
-    let outfits = await this.getAll();
-    let updatedOutfit = null;
-    const newOutfits = outfits.map(o => {
-      if (o.id === id) {
-        let upd = { ...updates };
-        if (Array.isArray(updates.tags)) {
-          const normalized = [...new Set(updates.tags.map(t => {
-            const s = (t || '').trim();
-            if (!s) return null;
-            const withHash = s.startsWith('#') ? s : `#${s}`;
-            return withHash.toLowerCase();
-          }).filter(Boolean))];
-          upd.tags = normalized;
-        }
-        updatedOutfit = { ...o, ...upd };
-        return updatedOutfit;
-      }
-      return o;
-    });
-    await StorageService.set(KEY, newOutfits);
+    const existing = await StorageService.getById(KEY, id);
+    if (!existing) {
+      return null;
+    }
+
+    const normalizedUpdates = { ...updates };
+    if (Array.isArray(updates.tags)) {
+      const normalized = [...new Set(updates.tags.map(t => {
+        const s = (t || '').trim();
+        if (!s) return null;
+        const withHash = s.startsWith('#') ? s : `#${s}`;
+        return withHash.toLowerCase();
+      }).filter(Boolean))];
+      normalizedUpdates.tags = normalized;
+    }
+
+    const updatedOutfit = await StorageService.update(KEY, id, normalizedUpdates);
+
     if (updatedOutfit?.tags?.length) {
       const prefs = await PreferenceService.getPreferences();
       const existing = prefs.outfitTagSuggestions || [];
@@ -99,9 +95,7 @@ export const OutfitService = {
   },
 
   async remove(id) {
-    let outfits = await this.getAll();
-    const newOutfits = outfits.filter(o => o.id !== id);
-    await StorageService.set(KEY, newOutfits);
+    await StorageService.remove(KEY, id);
     return true;
   },
 

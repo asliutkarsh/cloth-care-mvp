@@ -6,19 +6,18 @@ const KEY = StorageService.KEYS.CATEGORIES;
 
 export const CategoryService = {
   async getAll() {
-    return (await StorageService.get(KEY)) || [];
+    return StorageService.getAll(KEY);
   },
 
   async getById(id) {
-    const categories = await this.getAll();
-    return categories.find(cat => cat.id === id) || null;
+    const category = await StorageService.getById(KEY, id);
+    return category || null;
   },
 
   /**
    * Adds a new top-level category.
    */
   async addCategory(categoryData) {
-    const categories = await this.getAll();
     const newCategory = {
       id: uuidv4(),
       parentId: null,
@@ -27,9 +26,7 @@ export const CategoryService = {
       icon: categoryData?.icon || '👕',
       createdAt: new Date().toISOString(),
     };
-
-    categories.push(newCategory);
-    await StorageService.set(KEY, categories);
+    await StorageService.add(KEY, newCategory);
     return newCategory;
   },
 
@@ -42,7 +39,6 @@ export const CategoryService = {
       throw new Error(`Parent category with id "${parentId}" not found.`);
     }
 
-    const categories = await this.getAll();
     const newSubCategory = {
       id: uuidv4(),
       ...categoryData,
@@ -51,24 +47,13 @@ export const CategoryService = {
       icon: categoryData?.icon || parent.icon || '👕',
       createdAt: new Date().toISOString(),
     };
-
-    categories.push(newSubCategory);
-    await StorageService.set(KEY, categories);
+    await StorageService.add(KEY, newSubCategory);
     return newSubCategory;
   },
 
   async update(id, updates) {
-    let categories = await this.getAll();
-    let updatedCategory = null;
-    const newCategories = categories.map(cat => {
-      if (cat.id === id) {
-        updatedCategory = { ...cat, ...updates };
-        return updatedCategory;
-      }
-      return cat;
-    });
-    await StorageService.set(KEY, newCategories);
-    return updatedCategory;
+    const updated = await StorageService.update(KEY, id, updates);
+    return updated || null;
   },
 
   /**
@@ -78,9 +63,7 @@ export const CategoryService = {
     if (await this.hasChildren(id)) {
       throw new Error("Cannot remove a category that has subcategories.");
     }
-    let categories = await this.getAll();
-    const newCategories = categories.filter(cat => cat.id !== id);
-    await StorageService.set(KEY, newCategories);
+    await StorageService.remove(KEY, id);
     return true;
   },
 

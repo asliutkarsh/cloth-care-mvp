@@ -20,7 +20,7 @@ export const AuditLogService = {
   },
 
   async getAll() {
-    return (await StorageService.get(KEY)) || [];
+    return StorageService.getAll(KEY);
   },
 
   /**
@@ -36,19 +36,16 @@ export const AuditLogService = {
       details: {},
       ...logData,
     };
-    logs.push(newEntry);
 
-    // Optional: To prevent the log from growing indefinitely in localStorage
-    if (logs.length > 50) {
-      logs.splice(0, logs.length - 50); // Keep only the latest 50 entries
-    }
+    // Add the new entry and maintain only the latest 50 entries
+    const updatedLogs = [newEntry, ...logs].slice(0, 50);
 
-    await StorageService.set(KEY, logs);
+    await StorageService.bulkUpdate(KEY, updatedLogs);
     return newEntry;
   },
 
   async clear() {
-    await StorageService.set(KEY, []);
+    await StorageService.clear(KEY);
     return true;
   },
 

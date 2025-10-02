@@ -7,7 +7,6 @@ import ThemeToggle from '../components/ThemeToggle';
 import Logo from '../components/ui/Logo';
 
 const getNavBackgroundStyle = (theme) => {
-  console.log(`theme: ${theme}`);
   if (theme === 'dark') {
     return 'radial-gradient(ellipse 50% 60% at 50% 80%, rgba(16,185,129,0.2), transparent 100%), rgba(0,0,0,0.25)';
   }

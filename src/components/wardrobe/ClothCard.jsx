@@ -90,11 +90,11 @@ export default function ClothCard({
   };
 
   return (
-    <motion.button
+    <motion.div
       onClick={handleClick}
       whileHover={{ scale: 1.03 }}
       transition={{ type: "spring", stiffness: 300 }}
-      className={`relative text-left w-full rounded-xl shadow-md overflow-hidden card-gradient backdrop-blur border border-white/20 dark:border-white/10 transition-all group ${
+      className={`relative text-left w-full rounded-xl shadow-md overflow-hidden card-gradient backdrop-blur border border-white/20 dark:border-white/10 transition-all group cursor-pointer ${
         selected ? "ring-2 ring-primary-deep" : ""
       }`}
     >
@@ -184,6 +184,6 @@ export default function ClothCard({
           </p>
         )}
       </div>
-    </motion.button>
+    </motion.div>
   );
 }

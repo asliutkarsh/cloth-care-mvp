@@ -32,12 +32,12 @@ const applyWearCountsForActivity = async (activity) => {
 
 export const ActivityLogService = {
   async getAll() {
-    return (await StorageService.get(KEY)) || [];
+    return StorageService.getAll(KEY);
   },
 
   async getById(id) {
-    const logs = await this.getAll();
-    return logs.find(log => log.id === id) || null;
+    const log = await StorageService.getById(KEY, id);
+    return log || null;
   },
 
   async getByDate(date) {
@@ -70,8 +70,7 @@ export const ActivityLogService = {
       createdAt: now.toISOString(),
     };
 
-    logs.push(newLog);
-    await StorageService.set(KEY, logs);
+    await StorageService.add(KEY, newLog);
 
     if (newLog.status === 'worn') {
       await applyWearCountsForActivity(newLog);
@@ -81,47 +80,34 @@ export const ActivityLogService = {
   },
 
   async update(id, updates) {
-    const logs = await this.getAll();
-    const newLogs = [];
-    let updatedLog = null;
-
-    for (const log of logs) {
-      if (log.id === id) {
-        const nextLog = { ...log, ...updates };
-        if (typeof nextLog.appliedWearCounts === 'undefined') {
-          nextLog.appliedWearCounts = log.appliedWearCounts ?? log.status === 'worn';
-        }
-        const statusWas = log.status || 'worn';
-        const statusNow = nextLog.status || statusWas;
-        const needsWearIncrement =
-          statusWas !== 'worn' && statusNow === 'worn' && !nextLog.appliedWearCounts;
-
-        if (needsWearIncrement) {
-          await applyWearCountsForActivity(nextLog);
-          nextLog.appliedWearCounts = true;
-        }
-
-        updatedLog = nextLog;
-        newLogs.push(nextLog);
-      } else {
-        newLogs.push(log);
-      }
-    }
-
-    if (!updatedLog) {
+    const existing = await this.getById(id);
+    if (!existing) {
       return null;
     }
 
-    await StorageService.set(KEY, newLogs);
-    return updatedLog;
+    const nextLog = { ...existing, ...updates };
+    if (typeof nextLog.appliedWearCounts === 'undefined') {
+      nextLog.appliedWearCounts = existing.appliedWearCounts ?? existing.status === 'worn';
+    }
+
+    const previousStatus = existing.status || 'worn';
+    const currentStatus = nextLog.status || previousStatus;
+    const needsWearIncrement =
+      previousStatus !== 'worn' && currentStatus === 'worn' && !nextLog.appliedWearCounts;
+
+    if (needsWearIncrement) {
+      await applyWearCountsForActivity(nextLog);
+      nextLog.appliedWearCounts = true;
+    }
+
+    await StorageService.update(KEY, id, nextLog);
+    return nextLog;
   },
 
   async remove(id) {
     // Note: Removing an activity does NOT reverse the wear count increment.
     // This is a design choice for simplicity.
-    const logs = await this.getAll();
-    const newLogs = logs.filter(log => log.id !== id);
-    await StorageService.set(KEY, newLogs);
+    await StorageService.remove(KEY, id);
     return true;
   },
 };

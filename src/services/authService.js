@@ -16,7 +16,7 @@ export const AuthService = {
   async signup(credentials) {
     const { name, email, password } = credentials;
     const users = getMockUsers();
-    
+
     if (users.find(u => u.email === email)) {
       throw new Error('User with this email already exists.');
     }
@@ -24,7 +24,13 @@ export const AuthService = {
     const newUser = { id: uuidv4(), name, email, password };
     setMockUsers([...users, newUser]);
 
-    await UserService.setUser({ id: newUser.id, email: newUser.email, name: newUser.name });
+    // Store user data in IndexedDB as well for persistence
+    try {
+      await UserService.setUser({ id: 'user', email: newUser.email, name: newUser.name });
+    } catch (error) {
+      console.error('Failed to store user in IndexedDB:', error);
+    }
+
     return newUser;
   },
 
@@ -42,9 +48,16 @@ export const AuthService = {
     if (!foundUser) {
       throw new Error("Invalid credentials");
     }
-    
-    const userToSet = { id: foundUser.id, email: foundUser.email, name: foundUser.name };
-    await UserService.setUser(userToSet);
+
+    const userToSet = { id: 'user', email: foundUser.email, name: foundUser.name };
+
+    // Store user data in IndexedDB for persistence
+    try {
+      await UserService.setUser(userToSet);
+    } catch (error) {
+      console.error('Failed to store user in IndexedDB:', error);
+    }
+
     return userToSet;
   },
 
@@ -58,12 +71,22 @@ export const AuthService = {
   },
 
   async getCurrentUser() {
-    return UserService.getUser();
+    try {
+      return await UserService.getCurrentUser();
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
   },
 
   async logout() {
-    await UserService.clearUser();
-    return true;
+    try {
+      await UserService.clearUser();
+      return true;
+    } catch (error) {
+      console.error('Error during logout:', error);
+      return false;
+    }
   },
 
   async initializeUserSession() {

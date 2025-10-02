@@ -1,28 +1,65 @@
 // services/userService.js
-import { StorageService } from "./storageService.js";
+import { StorageService } from './storageService.js';
 
-// Use the key from the central storage service
-const USER_KEY = StorageService.KEYS.USER;
+const USER_TABLE = StorageService.KEYS.USER;
 
 export const UserService = {
   async getUser() {
-    return (await StorageService.get(USER_KEY)) || null;
+    try {
+      const user = await StorageService.getById(USER_TABLE, 'user');
+      if (!user) return null;
+      const { id, ...rest } = user;
+      return rest;
+    } catch (error) {
+      console.error('Error getting user:', error);
+      return null;
+    }
   },
 
   async setUser(user) {
-    await StorageService.set(USER_KEY, user);
-    return user;
+    try {
+      // Clear any existing user data first to avoid conflicts
+      await StorageService.clear(USER_TABLE);
+
+      // Use 'user' as the ID for consistency
+      const data = { id: 'user', ...user };
+      await StorageService.put(USER_TABLE, data);
+
+      return { ...user };
+    } catch (error) {
+      console.error('Error setting user:', error);
+      throw error;
+    }
   },
 
   async updateUser(updates) {
-    const user = (await this.getUser()) || {};
-    const updated = { ...user, ...updates };
-    await StorageService.set(USER_KEY, updated);
-    return updated;
+    try {
+      const existing = (await this.getUser()) || {};
+      const updatedUser = { ...existing, ...updates };
+      await StorageService.put(USER_TABLE, { id: 'user', ...updatedUser });
+      return updatedUser;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
   },
 
   async clearUser() {
-    await StorageService.remove(USER_KEY);
-    return true;
+    try {
+      await StorageService.remove(USER_TABLE, 'user');
+      return true;
+    } catch (error) {
+      console.error('Error clearing user:', error);
+      return false;
+    }
+  },
+
+  async getCurrentUser() {
+    try {
+      return await StorageService.getById(USER_TABLE, 'user');
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
   },
 };

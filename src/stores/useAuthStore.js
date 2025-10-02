@@ -1,6 +1,6 @@
 // src/stores/useAuthStore.js
 import { create } from 'zustand';
-import { AuthService, SetupService } from '../services';
+import { AuthService, SetupService, UserService } from '../services';
 import { useWardrobeStore } from './useWardrobeStore';
 import { useCalendarStore } from './useCalendarStore';
 import { useSettingsStore } from './useSettingsStore';
