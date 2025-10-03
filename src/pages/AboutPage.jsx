@@ -18,21 +18,6 @@ const InfoSection = ({ title, icon, children }) => (
   </section>
 )
 
-const ChangeItem = ({ type, description }) => (
-  <div className="flex items-start gap-3">
-    <span
-      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-        type === 'Feature'
-          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'
-          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200'
-      }`}
-    >
-      {type}
-    </span>
-    <p>{description}</p>
-  </div>
-)
-
 export default function AboutPage() {
   const navigate = useNavigate()
 
@@ -52,21 +37,17 @@ export default function AboutPage() {
           </InfoSection>
 
           <InfoSection title="Changelog" icon={<FileText size={16} />}>
-            <div className="space-y-4">
-              {CHANGELOG.map((log) => (
-                <div key={log.version}>
-                  <h3 className="font-semibold text-gray-800 dark:text-gray-200">
-                    {log.version}{' '}
-                    <span className="text-xs font-normal text-gray-500">({log.date})</span>
-                  </h3>
-                  <div className="mt-2 pl-4 border-l-2 border-gray-200 dark:border-gray-700 space-y-2">
-                    {log.changes.map((change, index) => (
-                      <ChangeItem key={index} type={change.type} description={change.description} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="mb-3">
+              View the complete changelog to see all updates, features, and improvements.
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate('/about/changelog')}
+              className="text-sm"
+            >
+              View Full Changelog
+            </Button>
           </InfoSection>
 
           <InfoSection title="Contact & Feedback" icon={<Users size={16} />}>
@@ -95,7 +76,7 @@ export default function AboutPage() {
           </InfoSection>
 
           <InfoSection title="Developers" icon={<BookOpen size={16} />}>
-            <p>This application is proudly developed by [Your Team Name/Your Name].</p>
+            <p>This application is proudly developed by Utkarsh Jaiswal.</p>
           </InfoSection>
         </div>
       </div>

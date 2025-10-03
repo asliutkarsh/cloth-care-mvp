@@ -20,6 +20,7 @@ import {
   TripPlanner,
   SettingsInsightsPage,
   AboutPage,
+  ChangelogPage,
 } from './pages'
 import { AuthProvider } from './context/AuthProvider'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -78,6 +79,7 @@ export default function App() {
             <Route path="/trips/:tripId" element={<TripPlanner />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/about/changelog" element={<ChangelogPage />} />
             <Route
               path="/settings/categories"
               element={<CategoryManagementPage />}
