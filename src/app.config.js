@@ -1,6 +1,18 @@
-export const APP_VERSION = "1.7.0";
+export const APP_VERSION = "1.7.1";
 
 export const WHATS_NEW = [
+  {
+    version: "1.7.1",
+    date: "2025-10-06",
+    changes: [
+      "🧩 New **Modal System** for adding clothes and outfits with a smoother workflow.",
+      "📥 Added **Import Functionality** to bring wardrobe data from JSON files easily.",
+      "⚙️ Settings updated with **Backup Frequency** options and import controls.",
+      "📦 Backup service now includes essentials and wash history for complete data sync.",
+      "🔔 Added **PWA Notifier** for update alerts and background sync improvements.",
+      "✨ Better user experience with detailed **toast notifications** for import results."
+    ]
+  },
   {
     version: "1.7.0",
     date: "2025-10-05",
@@ -108,8 +120,21 @@ export const WHATS_NEW = [
   }
 ];
 
-
 export const CHANGELOG = [
+  {
+    version: "1.7.1",
+    date: "2025-10-06",
+    changes: [
+      { type: "Feature", description: "Implemented modal system for adding clothes and outfits with global Zustand state management." },
+      { type: "Feature", description: "Created ImportModal component to import wardrobe data from JSON files." },
+      { type: "Feature", description: "Integrated modal triggers into CreateNewMenu and Wardrobe components for seamless workflow." },
+      { type: "Feature", description: "Enhanced Settings page with backup frequency preferences and import data options." },
+      { type: "Feature", description: "Added PWANotifier for service worker updates and background notifications." },
+      { type: "Improvement", description: "Backup service updated to include essentials and wash history during export/import." },
+      { type: "Improvement", description: "Enhanced user experience with toast notifications for import success or failure." },
+      { type: "Refactor", description: "Refactored modal rendering logic in AppLayout for better modularity and performance." }
+    ]
+  },
   {
     version: "1.7.0",
     date: "2025-10-05",

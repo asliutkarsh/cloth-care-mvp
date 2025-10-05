@@ -2,17 +2,18 @@
 import { Link, useLocation } from 'react-router-dom';
 import { FilePlus, BookPlus, WashingMachine, House, User, BookOpenCheck, Shirt } from 'lucide-react';
 import FabMenu from '../components/ui/FabMenu';
+import { useModalStore, ModalTypes } from '../stores/useModalStore';
 
 const wardrobeFabActions = [
   {
     label: 'Add Cloth',
     icon: FilePlus,
-    event: 'open-add-cloth',
+    modal: ModalTypes.ADD_CLOTH,
   },
   {
     label: 'Add Outfit',
     icon: Shirt,
-    event: 'open-outfit-modal',
+    modal: ModalTypes.ADD_OUTFIT,
   },
   {
     label: 'Log Wear',
@@ -23,6 +24,7 @@ const wardrobeFabActions = [
 
 export default function BottomNav({ onAddClothClick, onLogWearClick }) {
   const location = useLocation();
+  const openModal = useModalStore((s) => s.openModal);
   const isLanding = location.pathname === '/';
 
   // Recommended nav items
@@ -56,18 +58,15 @@ export default function BottomNav({ onAddClothClick, onLogWearClick }) {
         })}
 
         <FabMenu
-          actions={wardrobeFabActions.map(({ label, icon, event, action }) => ({
+          actions={wardrobeFabActions.map(({ label, icon, modal, action }) => ({
             label,
             icon,
             onClick: () => {
-              if (event) {
-                window.dispatchEvent(new CustomEvent(event));
+              if (modal) {
+                openModal(modal);
               }
               if (action === 'logWear') {
                 onLogWearClick?.();
-              }
-              if (!event && !action) {
-                onAddClothClick?.();
               }
             },
           }))}

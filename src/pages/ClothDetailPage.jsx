@@ -11,6 +11,7 @@ import ConfirmationModal from '../components/modal/ConfirmationModal';
 import { useToast } from '../context/ToastProvider.jsx';
 import { formatPrice } from '../utils/formatting';
 import ClothDetailSkeleton from '../components/skeleton/ClothDetailSkeleton';
+import { useModalStore, ModalTypes } from '../stores/useModalStore';
 
 // --- Reusable Components ---
 
@@ -64,7 +65,6 @@ export default function ClothDetailPage() {
   const { preferences } = useSettingsStore();
   const { addToast } = useToast();
 
-  const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [isConfirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
   const [washHistory, setWashHistory] = useState([]);
@@ -223,7 +223,7 @@ export default function ClothDetailPage() {
             <p className="text-sm text-gray-500 dark:text-gray-400">Added on {new Date(cloth.createdAt).toLocaleDateString()}</p>
           </div>
         </div>
-        <Button onClick={() => setEditModalOpen(true)} className="flex-shrink-0"><Edit size={16} className="mr-2" /> Edit</Button>
+        <Button onClick={() => useModalStore.getState().openModal(ModalTypes.ADD_CLOTH, { initialData: cloth })} className="flex-shrink-0"><Edit size={16} className="mr-2" /> Edit</Button>
       </motion.header>
 
       <motion.section variants={itemVariants} className=" rounded-2xl overflow-hidden">
@@ -325,7 +325,7 @@ export default function ClothDetailPage() {
         </AnimatePresence>
       </motion.section>
 
-      <ClothModal open={isEditModalOpen} onClose={() => setEditModalOpen(false)} initialData={cloth} onSubmit={async (d) => await updateCloth(clothId, d)} />
+      {/** Edit modal removed: handled via global modal store in AppLayout */}
       <ClothModal open={isDuplicateModalOpen} onClose={() => setIsDuplicateModalOpen(false)} initialData={cloth} isEditMode={false}/>
       <ConfirmationModal
         open={isConfirmDeleteOpen}
@@ -339,3 +339,5 @@ export default function ClothDetailPage() {
     </motion.main>
   );
 }
+
+

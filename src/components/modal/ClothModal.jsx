@@ -59,6 +59,8 @@ export default function ClothModal({ open, onClose, onSubmit, initialData = null
 
   useEffect(() => {
     if (open) {
+      console.log('ClothModal: open', open);
+      console.log('ClothModal: initialData', initialData);
       const base = initialData || {};
       setForm({
         name: base.name || '',

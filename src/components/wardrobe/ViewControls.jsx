@@ -4,7 +4,7 @@ import React from 'react'
 export default function ViewControls({ viewMode, sortBy, onViewChange, onSortChange, className = '', showViewToggle = true }) {
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      {showViewToggle && (
+      {/* {showViewToggle && (
         <div className="inline-flex rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
           <button
             className={`px-3 py-1.5 text-sm ${viewMode === 'grid' ? 'bg-gray-200 dark:bg-gray-700 font-semibold' : ''}`}
@@ -22,8 +22,9 @@ export default function ViewControls({ viewMode, sortBy, onViewChange, onSortCha
           </button>
         </div>
       )}
-
+ */}
       <select
+        id='sort-by'
         value={sortBy}
         onChange={(e) => onSortChange?.(e.target.value)}
         className="h-9 px-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm"

@@ -51,7 +51,7 @@ export default function FilterChipBar({
   const childCategories = parentCategory?.children || []
 
   return (
-    <div className={`w-full overflow-x-auto no-scrollbar py-1 ${className}`}>
+    <div className={`w-full overflow-x-auto scrollbar-hide py-1 ${className}`}>
       <div className="flex items-center gap-2 min-w-max">
         <Chip
           active={isAll && !filters.favorite}
@@ -122,7 +122,7 @@ export default function FilterChipBar({
 
       {isClothes && parentCategory && childCategories.length > 0 && (
         <div className="mt-2 ml-1">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
             <Chip
               active={filters.categoryId === parentCategory.id}
               onClick={() =>

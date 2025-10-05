@@ -32,6 +32,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BackupReminder />
+      <PWANotifier /> 
       <Router>
         <Routes>
           {/* --- Public Routes --- */}
