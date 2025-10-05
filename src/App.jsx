@@ -18,6 +18,7 @@ import { useAuthStore } from './stores/useAuthStore'
 import { useWardrobeStore } from './stores/useWardrobeStore'
 import { useSettingsStore } from './stores/useSettingsStore'
 import BackupReminder from './components/BackupReminder'
+import PWANotifier from './components/PWANotifier'
 
 export default function App() {
   useEffect(() => {
