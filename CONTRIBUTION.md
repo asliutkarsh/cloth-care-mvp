@@ -23,13 +23,14 @@ ClothCare is a comprehensive digital wardrobe management application built with 
 
 - **State Management:** Zustand 5.0.8 for lightweight, scalable state management
 - **Routing:** React Router DOM 7.8.2 for client-side routing and navigation
-- **Data Persistence:** Browser localStorage with service layer abstraction
+- **Data Persistence:** IndexedDB via Dexie 4.2.0 with automatic migration from legacy localStorage
 - **Date Utilities:** date-fns 4.1.0 for robust date manipulation
 
 ### Advanced Libraries
 
 - **Drag & Drop:** @dnd-kit (core 6.3.1, sortable 10.0.0, utilities 3.2.2)
-- **Form Handling:** React Hook Form for complex form validation
+- **Charts:** Recharts 3.2.1 for insights visualizations
+- **PWA:** vite-plugin-pwa 1.0.3 for offline capability and installability
 - **Unique IDs:** UUID 12.0.0 for generating unique identifiers
 - **Class Utilities:** clsx 2.1.1 for conditional className management
 
@@ -54,9 +55,9 @@ src/
 │   ├── landing/        # Landing page components
 │   └── skeleton/       # Loading skeleton components
 ├── layouts/            # Layout components (Navbar, Sidebar, etc.)
-├── pages/              # Top-level route components (16 pages total)
-├── stores/             # Zustand state management (7 stores)
-├── services/           # Business logic and API services (6 services)
+├── pages/              # Top-level route components
+├── stores/             # Zustand state management (9 stores)
+├── services/           # Business logic and persistence services (crud, logic, model, setup)
 ├── context/            # React context providers (3 providers)
 ├── main.jsx           # Application entry point
 ├── App.jsx            # Main application component with routing
@@ -155,16 +156,23 @@ Zustand state management stores (7 stores total):
 
 ### `/src/services`
 
-Business logic and data persistence layer (6 services):
+Stateless business logic and persistence organized into subfolders:
 
-| Service | Purpose | Key Methods |
-|---------|---------|-------------|
-| `ClothService.js` | Clothing CRUD operations | `createCloth`, `updateCloth`, `getClothes` |
-| `OutfitService.js` | Outfit management | `createOutfit`, `addToOutfit`, outfit combinations |
-| `StorageService.js` | Data persistence | `save`, `load`, `exportData`, localStorage abstraction |
-| `CategoryService.js` | Category management | `createCategory`, `getCategories`, hierarchy support |
-| `ActivityService.js` | Calendar activities | `logActivity`, activity tracking |
-| `TripService.js` | Trip planning | `createTrip`, `getTrips`, travel management |
+- `crud/` – CRUD operations for domain entities (TypeScript)
+- `logic/` – Feature logic and utilities (TypeScript)
+- `model/` – Domain model types and helpers (TypeScript)
+- `setup/` – App setup and storage services (IndexedDB via Dexie)
+
+Key services and notes:
+
+| Service | Location | Purpose |
+|---------|----------|---------|
+| `ClothService` | `src/services/crud` | Clothing CRUD operations |
+| `OutfitService` | `src/services/crud` | Outfit management |
+| `CategoryService` | `src/services/crud` | Category hierarchy management |
+| `ActivityService` | `src/services/crud` | Calendar activity logging |
+| `TripService` | `src/services/crud` | Trip planning |
+| `StorageService` | `src/services/setup/storage.service.ts` | IndexedDB persistence via Dexie, migration from localStorage |
 
 ## 🎨 Theme System
 
@@ -337,26 +345,37 @@ export const useWardrobeStore = create((set, get) => ({
 #### Service Layer Pattern
 
 ```jsx
-// Services handle all business logic
+// Services handle business logic; persistence is delegated to StorageService (Dexie)
+import { StorageService } from '../services/setup';
+import { v4 as uuidv4 } from 'uuid';
+
 export const ClothService = {
   createCloth: async (clothData) => {
     const cloth = {
       id: uuidv4(),
       ...clothData,
       createdAt: new Date(),
+      updatedAt: new Date(),
       currentWearCount: 0,
       status: 'clean'
     };
 
-    await StorageService.save('clothes', cloth);
+    await StorageService.add(StorageService.KEYS.CLOTHES, cloth);
     return cloth;
   },
 
   getClothes: async () => {
-    return await StorageService.load('clothes') || [];
-  }
+    return await StorageService.getAll(StorageService.KEYS.CLOTHES);
+  },
 };
 ```
+
+> Note: `StorageService` exposes `getAll`, `getById`, `add`, `put`, `update`, `bulkUpdate`, `remove`, `bulkRemove`, `clear`, and `clearAll`. See `src/services/setup/storage.service.ts`.
+
+#### PWA Configuration
+
+- PWA is configured via `vite-plugin-pwa` in `vite.config.js` with `registerType: 'autoUpdate'` and Workbox caching.
+- Ensure icons and manifest fields in `public/` are up to date for branding.
 
 ### Performance Optimization
 

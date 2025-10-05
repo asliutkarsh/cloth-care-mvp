@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+// src/components/modal/OutfitModal.jsx
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useWardrobeStore } from '../../stores/useWardrobeStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import Modal from '../ui/Modal';
@@ -89,16 +90,17 @@ export default function OutfitModal({ open, onClose, onSubmit, initialData = nul
   const [selectedClothIds, setSelectedClothIds] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [query, setQuery] = useState('');
+  const formRef = useRef(null);
 
   const categoryNameLookup = useMemo(() => {
     const map = new Map();
     const walk = (categoryList) => {
-        for (const category of categoryList) {
-            map.set(category.id, category.name);
-            if (category.children?.length) {
-                walk(category.children);
-            }
+      for (const category of categoryList) {
+        map.set(category.id, category.name);
+        if (category.children?.length) {
+          walk(category.children);
         }
+      }
     };
     walk(categories);
     return map;
@@ -106,7 +108,8 @@ export default function OutfitModal({ open, onClose, onSubmit, initialData = nul
 
   useEffect(() => {
     if (open && (!outfitTagSuggestions || outfitTagSuggestions.length === 0)) {
-      fetchPreferences();
+      // Avoid global SplashScreen when opening modal
+      fetchPreferences({ trackStatus: false });
     }
   }, [open, outfitTagSuggestions, fetchPreferences]);
 
@@ -178,26 +181,40 @@ export default function OutfitModal({ open, onClose, onSubmit, initialData = nul
     return (outfitTagSuggestions || []).filter((tag) => !existing.has(tag.toLowerCase()))
   }, [outfitTagSuggestions, tagList]);
 
+  const titleText = initialData ? 'Edit Outfit' : 'Create Outfit';
+  const footer = (
+    <div className="flex items-center justify-end gap-2">
+      <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+      <Button type="button" onClick={() => formRef.current?.requestSubmit()}>Save Outfit</Button>
+    </div>
+  );
+
   return (
-    <Modal open={open} onClose={onClose} size="3xl">
-      <form onSubmit={handleSubmit}>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <h2 className="text-xl font-bold">{initialData ? 'Edit Outfit' : 'Create Outfit'}</h2>
-          <div className="flex gap-2">
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-            <Button type="submit">Save Outfit</Button>
-          </div>
-        </div>
+    <Modal open={open} onClose={onClose} size="3xl" title={titleText} footer={footer}>
+      <form onSubmit={handleSubmit} ref={formRef}>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-8">
           <section className="space-y-6">
             <div>
-              <label className="text-sm font-medium mb-1 block">Outfit name</label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Weekend brunch" required />
+              <label htmlFor="outfit-name" className="text-sm font-medium mb-1 block">Outfit name</label>
+              <Input 
+                id="outfit-name" 
+                name="outfit-name" 
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                placeholder="e.g., Weekend brunch" 
+                required 
+              />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Tags</label>
-              <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="summer, casual" />
+              <label htmlFor="outfit-tags" className="text-sm font-medium mb-1 block">Tags</label>
+              <Input 
+                id="outfit-tags" 
+                name="outfit-tags" 
+                value={tagsInput} 
+                onChange={(e) => setTagsInput(e.target.value)} 
+                placeholder="summer, casual" 
+              />
               {tagList.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {tagList.map((tag) => (
@@ -232,8 +249,22 @@ export default function OutfitModal({ open, onClose, onSubmit, initialData = nul
             </div>
             <div className="rounded-2xl border border-gray-200/70 dark:border-gray-700/60 bg-white/80 dark:bg-gray-900/70 shadow-sm">
               <div className="border-b border-gray-200/70 dark:border-gray-700/60 px-4 py-3 flex flex-wrap items-center gap-3">
-                <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search your wardrobe..." className="flex-1 min-w-[150px]" />
-                <Select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="min-w-[150px]">
+                <Input 
+                  id="cloth-search-query"
+                  name="cloth-search-query"
+                  value={query} 
+                  onChange={(e) => setQuery(e.target.value)} 
+                  placeholder="Search your wardrobe..." 
+                  className="flex-1 min-w-[150px]" 
+                />
+                <Select 
+                  id="cloth-category-filter"
+                  name="cloth-category-filter"
+                  aria-label="Filter items by category"
+                  value={categoryFilter} 
+                  onChange={(e) => setCategoryFilter(e.target.value)} 
+                  className="min-w-[150px]"
+                >
                   <option value="" className="bg-white dark:bg-gray-800 text-black dark:text-white">All categories</option>
                   {(categories || []).map((cat) => (<option key={cat.id} value={cat.id} className="bg-white dark:bg-gray-800 text-black dark:text-white">{cat.name}</option>))}
                 </Select>

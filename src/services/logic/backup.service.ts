@@ -1,3 +1,4 @@
+// src/services/logic/backup.service.ts
 import { StorageService } from '../setup/storage.service';
 import { CategoryService } from '../crud/category.service';
 import { ClothService } from '../crud/cloth.service';
@@ -5,12 +6,20 @@ import { OutfitService } from '../crud/outfit.service';
 import { ActivityLogService } from '../crud/activity.service';
 import { TripService } from '../crud/trip.service';
 import { PreferenceService } from '../crud/preference.service';
+// NEW IMPORTS
+import { EssentialsService } from '../crud/essentials.service';
+import { WashHistoryService } from '../crud/wash-history.service';
+
 import { Category } from '../model/category.model';
 import { Cloth } from '../model/cloth.model';
 import { Outfit } from '../model/outfit.model';
 import { ActivityLog } from '../model/activity.model';
 import { Trip } from '../model/trip.model';
 import type { UserPreferences } from '../model/preferences.model';
+// NEW MODEL IMPORTS
+import type { EssentialItem } from '../model/essential.model';
+import type { WashHistoryEvent } from '../crud/wash-history.service'; 
+
 
 export interface BackupData {
   exportDate: string;
@@ -20,6 +29,9 @@ export interface BackupData {
   [StorageService.KEYS.ACTIVITY_LOGS]: ActivityLog[];
   [StorageService.KEYS.TRIPS]?: Trip[];
   [StorageService.KEYS.PREFERENCES]?: UserPreferences[];
+  // ADDED KEYS
+  [StorageService.KEYS.ESSENTIALS]?: EssentialItem[]; 
+  [StorageService.KEYS.WARDROBE_WASH_HISTORY]?: WashHistoryEvent[];
 }
 
 interface ImportResult {
@@ -39,15 +51,25 @@ export const BackupService = {
       outfits,
       activities,
       trips,
-      preferences
+      preferences,
+      // ADDED FETCHES
+      essentials,
+      washHistoryResult 
     ] = await Promise.all([
       CategoryService.getAll(),
       ClothService.getAll(),
       OutfitService.getAll(),
       ActivityLogService.getAll(),
       TripService.getAll(),
-      PreferenceService.getPreferences()
+      PreferenceService.getPreferences(),
+      // ADDED SERVICE CALLS
+      EssentialsService.getAll(),
+      // Fetch all history items. We pass null for clothId to get all history entries.
+      WashHistoryService.getHistoryForCloth(null as any, { limit: 9999999 }),
     ]);
+    
+    // We only need the items array from the WashHistoryQueryResult
+    const washHistory = washHistoryResult.items;
 
     const data: BackupData = {
       exportDate: new Date().toISOString(),
@@ -56,7 +78,10 @@ export const BackupService = {
       [StorageService.KEYS.OUTFITS]: outfits,
       [StorageService.KEYS.ACTIVITY_LOGS]: activities,
       [StorageService.KEYS.TRIPS]: trips,
-      [StorageService.KEYS.PREFERENCES]: preferences ? [preferences] : []
+      [StorageService.KEYS.PREFERENCES]: preferences ? [preferences] : [],
+      // ADDED DATA TO EXPORT OBJECT
+      [StorageService.KEYS.ESSENTIALS]: essentials,
+      [StorageService.KEYS.WARDROBE_WASH_HISTORY]: washHistory,
     };
 
     return data;
@@ -108,6 +133,20 @@ export const BackupService = {
           StorageService.bulkUpdate(StorageService.KEYS.TRIPS, data[StorageService.KEYS.TRIPS] as Trip[])
         );
       }
+      
+      // ADDED IMPORTS
+      if (data[StorageService.KEYS.ESSENTIALS]) {
+        importPromises.push(
+          StorageService.bulkUpdate(StorageService.KEYS.ESSENTIALS, data[StorageService.KEYS.ESSENTIALS] as EssentialItem[])
+        );
+      }
+      
+      if (data[StorageService.KEYS.WARDROBE_WASH_HISTORY]) {
+        importPromises.push(
+          StorageService.bulkUpdate(StorageService.KEYS.WARDROBE_WASH_HISTORY, data[StorageService.KEYS.WARDROBE_WASH_HISTORY] as WashHistoryEvent[])
+        );
+      }
+      // END ADDED IMPORTS
       
       const preferencesData = data[StorageService.KEYS.PREFERENCES]?.[0];
       if (preferencesData) {

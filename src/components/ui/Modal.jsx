@@ -1,6 +1,9 @@
+// src/components/ui/Modal.jsx
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Button } from '../ui';
+import { useEffect, useState } from 'react'; // <--- REQUIRED IMPORTS
 
 export default function Modal({ open, onClose, title, children, footer, size = 'md' }) {
   const sizes = {

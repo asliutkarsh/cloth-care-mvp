@@ -5,43 +5,39 @@ import BottomNav from './BottomNav';
 import Sidebar from './Sidebar';
 import ClothModal from '../components/modal/ClothModal';
 import OutfitModal from '../components/modal/OutfitModal';
+import ImportModal from '../components/modal/ImportModal';
 import ChangelogModal from '../components/modal/ChangelogModal';
 import { useWardrobeStore } from '../stores/useWardrobeStore';
 import { APP_VERSION } from '../app.config.js';
 import BaseLayout from './BaseLayout';
+import { useModalStore, ModalTypes } from '../stores/useModalStore';
 
 export default function AppLayout() {
-  const { addCloth, createOutfit } = useWardrobeStore();
-  const [isAddClothModalOpen, setAddClothModalOpen] = useState(false);
-  const [isOutfitModalOpen, setOutfitModalOpen] = useState(false);
-  const [outfitInitialData, setOutfitInitialData] = useState(null);
+  const { addCloth, createOutfit, updateCloth } = useWardrobeStore();
   const [showChangelog, setShowChangelog] = useState(false);
   const navigate = useNavigate();
+  const currentModal = useModalStore((s) => s.currentModal);
+  const modalProps = useModalStore((s) => s.modalProps);
+  const closeModal = useModalStore((s) => s.closeModal);
 
   const handleLogWearClick = () => {
     navigate('/calendar?openAdd=1');
   };
 
-  const handleAddCloth = async (newClothData) => {
-    await addCloth(newClothData);
-    setAddClothModalOpen(false);
+  const handleSubmitCloth = async (data) => {
+    // If initialData present, treat as edit; otherwise add
+    if (modalProps?.initialData?.id) {
+      await updateCloth(modalProps.initialData.id, data);
+    } else {
+      await addCloth(data);
+    }
+    closeModal();
   };
 
-  useEffect(() => {
-    const handler = () => setAddClothModalOpen(true);
-    window.addEventListener('open-add-cloth', handler);
-    return () => window.removeEventListener('open-add-cloth', handler);
-  }, []);
-
-  useEffect(() => {
-    const handler = (e) => {
-      const detail = e?.detail || null;
-      setOutfitInitialData(detail || null);
-      setOutfitModalOpen(true);
-    };
-    window.addEventListener('open-outfit-modal', handler);
-    return () => window.removeEventListener('open-outfit-modal', handler);
-  }, []);
+  const handleAddOutfit = async (newOutfitData) => {
+    await createOutfit(newOutfitData);
+    closeModal();
+  };
 
   useEffect(() => {
     const lastSeenVersion = localStorage.getItem('lastSeenVersion');
@@ -50,6 +46,36 @@ export default function AppLayout() {
       localStorage.setItem('lastSeenVersion', APP_VERSION);
     }
   }, []);
+
+  const renderModal = () => {
+    if (!currentModal) return null;
+    if (currentModal === ModalTypes.ADD_CLOTH) {
+      return (
+        <ClothModal
+          open={true}
+          onClose={closeModal}
+          onSubmit={handleSubmitCloth}
+          initialData={modalProps?.initialData}
+        />
+      );
+    }
+    if (currentModal === ModalTypes.ADD_OUTFIT) {
+      return (
+        <OutfitModal
+          open={true}
+          onClose={closeModal}
+          onSubmit={handleAddOutfit}
+          initialData={modalProps?.initialData}
+        />
+      );
+    }
+    if (currentModal === ModalTypes.IMPORT_DATA) {
+      return (
+        <ImportModal open={true} onClose={closeModal} />
+      );
+    }
+    return null;
+  };
 
   return (
     <BaseLayout>
@@ -61,35 +87,9 @@ export default function AppLayout() {
         </main>
       </div>
 
-      <BottomNav
-        onAddClothClick={() => setAddClothModalOpen(true)}
-        onLogWearClick={handleLogWearClick}
-      />
+      <BottomNav onLogWearClick={handleLogWearClick} />
 
-      {isAddClothModalOpen && (
-        <ClothModal
-          open={isAddClothModalOpen}
-          onClose={() => setAddClothModalOpen(false)}
-          onSubmit={handleAddCloth}
-          isEditMode={false}
-        />
-      )}
-
-      {isOutfitModalOpen && (
-        <OutfitModal
-          open={isOutfitModalOpen}
-          onClose={() => {
-            setOutfitModalOpen(false);
-            setOutfitInitialData(null);
-          }}
-          initialData={outfitInitialData}
-          onSubmit={async (data) => {
-            await createOutfit(data);
-            setOutfitModalOpen(false);
-            setOutfitInitialData(null);
-          }}
-        />
-      )}
+      {renderModal()}
 
       {showChangelog && (
         <ChangelogModal open={showChangelog} onClose={() => setShowChangelog(false)} />

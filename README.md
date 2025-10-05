@@ -74,15 +74,25 @@ ClothCare is a comprehensive digital wardrobe management application that helps 
 
 - **State Management:** Zustand 5.0.8 for lightweight, scalable state management
 - **Routing:** React Router DOM 7.8.2 for client-side routing and navigation
-- **Data Persistence:** Browser localStorage with service layer abstraction
+- **Data Persistence:** IndexedDB via Dexie 4.2.0 with a migration from legacy localStorage
 - **Date Utilities:** date-fns 4.1.0 for robust date manipulation
 
 ### Advanced Libraries
 
 - **Drag & Drop:** @dnd-kit (core, sortable, utilities) for interactive clothing organization
-- **Form Handling:** React Hook Form for complex form validation
+- **Charts:** Recharts 3.2.1 for insights visualizations
+- **PWA:** vite-plugin-pwa 1.0.3 for offline capability and installability
 - **Unique IDs:** UUID 12.0.0 for generating unique identifiers
 - **Class Utilities:** clsx 2.1.1 for conditional className management
+
+---
+
+## 📚 Further Documentation
+
+- Architecture: `docs/ARCHITECTURE.md`
+- Storage & Migration: `docs/STORAGE.md`
+- Routes Overview: `docs/ROUTES.md`
+- PWA Guide: `docs/PWA.md`
 
 ---
 
@@ -115,7 +125,7 @@ Business logic and data persistence with stateless, reusable functions:
 
 - `ClothService` - CRUD operations for clothing items
 - `OutfitService` - Outfit management and combinations
-- `StorageService` - Data persistence abstraction (localStorage)
+- `StorageService` - Data persistence via IndexedDB (Dexie), with automatic migration from legacy localStorage
 - `CategoryService` - Category hierarchy management
 - `ActivityService` - Calendar activity logging
 - `TripService` - Trip planning functionality
@@ -231,6 +241,38 @@ React context providers for global concerns:
 
 ---
 
+## 🧭 App Routes
+
+Public routes (`PublicLayout`):
+
+- `/` – Landing
+- `/login` – Login
+- `/signup` – Signup
+
+Protected routes (`ProtectedRoute` + `AppLayout`):
+
+- `/dashboard` – Dashboard
+- `/wardrobe` – Wardrobe list/grid
+- `/wardrobe/cloth/:clothId` – Cloth detail
+- `/wardrobe/outfit/:outfitId` – Outfit detail
+- `/laundry` – Laundry workflow
+- `/calendar` – Calendar & activity log
+- `/insights` – Insights dashboard
+- `/trips` – Trips
+- `/trips/:tripId` – Trip planner
+- `/settings` – Settings main
+- `/settings/insights` – Configure insights modules
+- `/profile` – Profile
+- `/profile/essentials` – Essentials
+- `/profile/wardrobe-settings` – Wardrobe settings
+- `/profile/categories` – Category manager
+- `/profile/filters` – Manage filters
+- `/about` – About
+- `/about/changelog` – Changelog
+- `*` – Not Found
+
+---
+
 ## 🌟 Key Features in Detail
 
 ### Wardrobe Organization
@@ -307,6 +349,15 @@ colors: {
 - **No User Tracking:** Privacy-focused with no analytics or tracking
 - **Data Export Control:** Users maintain full control over their data
 - **Offline Capable:** Works without internet connection
+- **Backup & Migration:** On first run, existing localStorage data is migrated into IndexedDB automatically. Use Settings → Data & Privacy to export/import backups.
+
+---
+
+## 📱 PWA
+
+- Installable as a Progressive Web App with offline caching via Workbox (configured in `vite.config.js`).
+- Auto-update registration enabled (`registerType: 'autoUpdate'`).
+- Ensure icons exist in `public/` and update manifest fields if branding changes.
 
 ---
 

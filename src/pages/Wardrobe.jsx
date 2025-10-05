@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+﻿import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWardrobeStore } from '../stores/useWardrobeStore';
+import { useModalStore, ModalTypes } from '../stores/useModalStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { Shirt, Layers, Sparkles, TrendingUp, Package } from 'lucide-react';
 import { Button, Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui';
@@ -19,6 +20,7 @@ import BulkActionBar from '../components/wardrobe/BulkActionBar';
 
 export default function Wardrobe() {
   const navigate = useNavigate();
+  const openModal = useModalStore((s) => s.openModal);
   const {
     clothes = [],
     outfits = [],
@@ -475,7 +477,7 @@ export default function Wardrobe() {
                       Clear Filters
                     </Button>
                   ) : (
-                    <Button onClick={() => navigate('/wardrobe/new')}>
+                    <Button onClick={() => openModal(ModalTypes.ADD_CLOTH)}>
                       Add First Item
                     </Button>
                   )}
@@ -526,7 +528,7 @@ export default function Wardrobe() {
                       Clear Filters
                     </Button>
                   ) : (
-                    <Button onClick={() => navigate('/wardrobe/outfits/new')}>
+                    <Button onClick={() => openModal(ModalTypes.ADD_OUTFIT)}>
                       Create First Outfit
                     </Button>
                   )}
