@@ -3,6 +3,15 @@ import { StorageService } from '../setup/storage.service';
 import { CategoryService } from './category.service';
 import { Cloth, ClothStatus } from '../model/cloth.model';
 
+const loadRelatedServices = async () => {
+  const [{ OutfitService }, { TripService }] = await Promise.all([
+    import('./outfit.service'),
+    import('./trip.service'),
+  ]);
+
+  return { OutfitService, TripService };
+};
+
 interface ClothData {
   name: string;
   categoryId: string;
@@ -96,8 +105,25 @@ export const ClothService = {
   },
 
   async remove(id: string): Promise<boolean> {
+    const { OutfitService, TripService } = await loadRelatedServices();
+
+    await Promise.all([
+      OutfitService.removeClothReferences(id),
+      TripService.removeClothReferences(id),
+    ]);
+
     await StorageService.remove(StorageService.KEYS.CLOTHES, id);
     return true;
+  },
+
+  async getReferenceCounts(id: string): Promise<{ outfits: number; trips: number }> {
+    const { OutfitService, TripService } = await loadRelatedServices();
+    const [outfits, trips] = await Promise.all([
+      OutfitService.countClothReferences(id),
+      TripService.countClothReferences(id),
+    ]);
+
+    return { outfits, trips };
   },
 
   async incrementWearCount(clothId: string): Promise<Cloth | null> {
@@ -110,6 +136,7 @@ export const ClothService = {
 
     return this.update(clothId, {
       currentWearCount: newWearCount,
+      totalWearCount: cloth.totalWearCount + 1,
       status: newStatus,
     });
   },
@@ -124,6 +151,7 @@ export const ClothService = {
 
     return this.update(clothId, {
       currentWearCount: newWearCount,
+      totalWearCount: cloth.totalWearCount - 1,
       status: newStatus,
     });
   },

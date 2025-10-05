@@ -37,7 +37,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
       'valueLeaders',
     ],
   },
-  currency: 'USD',
+  currency: 'INR',
 };
 
 interface PreferenceUpdates {

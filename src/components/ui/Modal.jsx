@@ -1,57 +1,54 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
+import { Button } from '../ui';
 
-export default function Modal({ open, onClose, title, children, footer, size = 'md', closeOnBackdrop = true, bodyClassName }) {
+export default function Modal({ open, onClose, title, children, footer, size = 'md' }) {
   const sizes = {
-    sm: 'max-w-sm',
     md: 'max-w-md',
     lg: 'max-w-lg',
-    xl: 'max-w-2xl',
     '2xl': 'max-w-3xl',
     '3xl': 'max-w-4xl',
-    full: 'max-w-full',
   };
   const panelSizeClass = sizes[size] || sizes.md;
 
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50">
-          {/* Backdrop */}
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <motion.div
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={closeOnBackdrop ? onClose : undefined}
+            onClick={onClose}
           />
 
-          {/* Panel */}
-          <div className="absolute inset-0 flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              className={`w-full sm:w-auto sm:${panelSizeClass} bg-white dark:bg-gray-900 rounded-t-2xl sm:rounded-2xl shadow-xl border border-white/10 dark:border-gray-800 flex flex-col max-h-[95vh]`}
-              initial={{ y: 40, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 40, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            >
-              {title && (
-                <div className="px-4 py-3 border-b border-gray-200/60 dark:border-gray-800 flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
-                  <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" aria-label="Close">
-                    ✕
-                  </button>
-                </div>
-              )}
+          <motion.div
+            role="dialog"
+            className={`relative w-full ${panelSizeClass} glass-card border-t border-gray-200 dark:border-gray-700 sm:border flex flex-col max-h-[90vh] sm:max-h-[85vh] rounded-t-2xl sm:rounded-2xl`}
+            initial={{ y: '100%', sm: { y: 40, opacity: 0 } }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: '100%', sm: { y: 40, opacity: 0 } }}
+            transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+          >
+            <header className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-gray-700 text-center relative">
+               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-gray-300 dark:bg-gray-600 rounded-full sm:hidden" />
+               <h3 className="text-lg font-semibold pt-2 sm:pt-0">{title}</h3>
+               <Button onClick={onClose} variant="ghost" size="icon" className="absolute top-2 right-2 rounded-full" aria-label="Close">
+                  <X size={20} />
+                </Button>
+            </header>
 
-              <div className={bodyClassName || 'px-4 py-4 overflow-y-auto'}>{children}</div>
+            <div className="p-4 sm:p-6 flex-grow overflow-y-auto">
+                {children}
+            </div>
 
-              {footer && (
-                <div className="px-4 py-3 border-t border-gray-200/60 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">{footer}</div>
-              )}
-            </motion.div>
-          </div>
+            {footer && (
+              <footer className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-gray-700">
+                {footer}
+              </footer>
+            )}
+          </motion.div>
         </div>
       )}
     </AnimatePresence>

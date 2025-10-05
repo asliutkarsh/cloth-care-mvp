@@ -7,7 +7,9 @@ import {
   createDefaultCategories,
   createDefaultClothes,
   createDefaultOutfits,
+  createDefaultEssentials,
 } from './defaultValues';
+import { EssentialsService } from '../crud/essentials.service';
 
 export const SetupService = {
   /**
@@ -38,6 +40,9 @@ export const SetupService = {
       for (const outfit of defaultOutfits) {
         await OutfitService.add(outfit);
       }
+
+      const defaultEssentials = createDefaultEssentials();
+      await EssentialsService.replaceAll(defaultEssentials);
 
       console.log("Database seeded successfully!");
       return true; // Indicates that setup was run

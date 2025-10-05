@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
 import { StorageService } from '../setup/storage.service';
-import { ClothService } from './cloth.service';
 import { OutfitService } from './outfit.service';
 import { ActivityLog } from '../model/activity.model';
 
@@ -31,13 +30,6 @@ const getClothIdsForActivity = async (activity: ActivityLog): Promise<string[]> 
   return [];
 };
 
-const applyWearCountsForActivity = async (activity: ActivityLog): Promise<void> => {
-  const clothIds = await getClothIdsForActivity(activity);
-  for (const clothId of clothIds) {
-    await ClothService.incrementWearCount(clothId);
-  }
-};
-
 export const ActivityLogService = {
   async getAll(): Promise<ActivityLog[]> {
     return StorageService.getAll(StorageService.KEYS.ACTIVITY_LOGS);
@@ -53,9 +45,49 @@ export const ActivityLogService = {
     return logs.filter(log => log.date === date);
   },
 
+  async getHistoryForCloth(clothId: string): Promise<ActivityLog[]> {
+    if (!clothId) {
+      return [];
+    }
+
+    const logs = await this.getAll();
+    const matching: ActivityLog[] = [];
+
+    for (const log of logs) {
+      if (log.status !== 'worn') {
+        continue;
+      }
+
+      const clothIds = await getClothIdsForActivity(log);
+      if (clothIds.includes(clothId)) {
+        matching.push(log);
+      }
+    }
+
+    return matching.sort((a, b) => {
+      const aTime = new Date(a.createdAt || `${a.date}T${a.time || '00:00'}`).getTime();
+      const bTime = new Date(b.createdAt || `${b.date}T${b.time || '00:00'}`).getTime();
+      return bTime - aTime;
+    });
+  },
+
+  async getHistoryForOutfit(outfitId: string): Promise<ActivityLog[]> {
+    if (!outfitId) {
+      return [];
+    }
+
+    const logs = await this.getAll();
+    return logs
+      .filter(log => log.type === 'outfit' && log.outfitId === outfitId && log.status === 'worn')
+      .sort((a, b) => {
+        const aTime = new Date(a.createdAt || `${a.date}T${a.time || '00:00'}`).getTime();
+        const bTime = new Date(b.createdAt || `${b.date}T${b.time || '00:00'}`).getTime();
+        return bTime - aTime;
+      });
+  },
+
   /**
    * Logs a user activity (wearing an outfit or individual clothes)
-   * and updates the wear count for each item.
    */
   async logActivity(activityData: ActivityData): Promise<ActivityLog> {
     const status = activityData?.status || 'worn';
@@ -66,7 +98,8 @@ export const ActivityLogService = {
       notes: activityData.notes || '',
       time: activityData?.time || `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
       status,
-      appliedWearCounts: status === 'worn',
+      // Let the store handle wear counts
+      appliedWearCounts: false,
       createdAt: now.toISOString(),
       type: activityData.type,
       outfitId: activityData.outfitId,
@@ -74,11 +107,6 @@ export const ActivityLogService = {
     };
 
     await StorageService.add(StorageService.KEYS.ACTIVITY_LOGS, newLog);
-
-    if (newLog.status === 'worn') {
-      await applyWearCountsForActivity(newLog);
-    }
-
     return newLog;
   },
 
@@ -89,18 +117,10 @@ export const ActivityLogService = {
     }
 
     const nextLog = { ...existing, ...updates };
+    
+    // The store will handle any wear count updates
     if (typeof nextLog.appliedWearCounts === 'undefined') {
-      nextLog.appliedWearCounts = existing.appliedWearCounts ?? existing.status === 'worn';
-    }
-
-    const previousStatus = existing.status || 'worn';
-    const currentStatus = nextLog.status || previousStatus;
-    const needsWearIncrement =
-      previousStatus !== 'worn' && currentStatus === 'worn' && !nextLog.appliedWearCounts;
-
-    if (needsWearIncrement) {
-      await applyWearCountsForActivity(nextLog);
-      nextLog.appliedWearCounts = true;
+      nextLog.appliedWearCounts = false;
     }
 
     const updated = await StorageService.put(StorageService.KEYS.ACTIVITY_LOGS, nextLog);

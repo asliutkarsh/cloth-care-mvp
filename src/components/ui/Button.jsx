@@ -19,6 +19,8 @@ const variants = {
     'bg-transparent text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 focus-visible:ring-gray-400 dark:ring-offset-gray-900',
   danger:
     'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500',
+  dangerghost:
+    'bg-transparent text-red-600 hover:bg-red-50 dark:hover:bg-red-900/40 focus-visible:ring-red-500', 
 };
 
 export default function Button({

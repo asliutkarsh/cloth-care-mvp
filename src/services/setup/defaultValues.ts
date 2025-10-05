@@ -12,7 +12,7 @@ export const createDefaultCategories = (): Category[] => {
 
   const subcategories: Category[] = [
     { id: uuidv4(), name: 'Shirts', parentId: tops.id, maxWearCount: 1, icon: '👔', createdAt: new Date().toISOString(), isHidden: false },
-    { id: uuidv4(), name: 'T-Shirts', parentId: tops.id, maxWearCount: 1, icon: '👕', createdAt: new Date().toISOString(), isHidden: false },
+    { id: uuidv4(), name: 'T-Shirts', parentId: tops.id, maxWearCount: 2, icon: '👕', createdAt: new Date().toISOString(), isHidden: false },
     { id: uuidv4(), name: 'Trousers', parentId: bottoms.id, maxWearCount: 2, icon: '👖', createdAt: new Date().toISOString(), isHidden: false },
     { id: uuidv4(), name: 'Jeans', parentId: bottoms.id, maxWearCount: 2, icon: '👖', createdAt: new Date().toISOString(), isHidden: false },
   ];
@@ -33,6 +33,12 @@ export const createDefaultClothes = (categories: Category[]): Omit<Cloth, 'id'>[
     { name: "Watch", color: "Silver", material: "Metal", categoryId: getCategory("Accessories")!.id, status: 'clean', currentWearCount: 0, totalWearCount: 0, createdAt: new Date().toISOString(), images: '', requiresPressing: false, favorite: false, isArchived: false },
   ];
 };
+
+export const createDefaultEssentials = (): string[] => [
+  'Identity Card',
+  'Phone charger',
+  'Toothbrush',
+];
 
 // ✅ Single Outfit for Demo Start
 export const createDefaultOutfits = (clothes: Cloth[]): Omit<Outfit, 'id'>[] => {

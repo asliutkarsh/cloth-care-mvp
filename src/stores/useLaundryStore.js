@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { LaundryService } from '../services/logic';
+import { useWardrobeStore } from './useWardrobeStore';
 
 export const useLaundryStore = create((set, get) => ({
   // STATE
@@ -25,7 +26,10 @@ export const useLaundryStore = create((set, get) => ({
    */
   washSelected: async (clothIds) => {
     await LaundryService.washClothes(clothIds);
-    await get().fetchStatus(); // Refresh the lists after washing
+    await Promise.all([
+      get().fetchStatus(),
+      useWardrobeStore.getState().fetchAll({ trackStatus: false }),
+    ]);
   },
 
   /**
@@ -33,6 +37,9 @@ export const useLaundryStore = create((set, get) => ({
    */
   pressSelected: async (clothIds) => {
     await LaundryService.pressClothes(clothIds);
-    await get().fetchStatus(); // Refresh the lists after pressing
+    await Promise.all([
+      get().fetchStatus(),
+      useWardrobeStore.getState().fetchAll({ trackStatus: false }),
+    ]);
   },
 }));

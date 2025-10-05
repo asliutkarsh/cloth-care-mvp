@@ -1,500 +1,145 @@
 import React, { useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useInsightsStore } from '../stores/useInsightsStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
-import { useWardrobeStore } from '../stores/useWardrobeStore';
-import ModuleCard from '../components/insights/ModuleCard';
-import { INSIGHT_MODULES, MIN_MODULES, MAX_MODULES } from '../components/insights/insightsConfig';
+import { INSIGHT_MODULES } from '../components/insights/insightsConfig';
+import { formatPrice } from '../utils/formatting';
+import { Button } from '../components/ui';
+import { Settings, RefreshCw, Gem, Activity, DollarSign } from 'lucide-react';
 
-const formatCurrency = (value) => {
-  const amount = Number(value) || 0;
-  return amount.toLocaleString(undefined, {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  });
-};
+// --- Helper Functions & Reusable Components ---
 
-const formatCPW = (value) => {
-  const amount = Number(value) || 0;
-  return `$${amount.toFixed(2)}`;
-};
+const formatCurrency = (value = 0, currency = 'INR') => formatPrice(value, currency, true, 0);
+const formatCPW = (value = 0, currency = 'INR') => formatPrice(value, currency, false, 2);
+const getActiveModules = (selectedIds = []) => INSIGHT_MODULES.filter(m => selectedIds.includes(m.id));
+const PIE_COLORS = ['#8B5CF6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#ede9fe'];
 
-const SectionHeading = ({ title, subtitle }) => (
-  <header className="flex flex-col gap-1">
-    <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{title}</h1>
-    {subtitle && <p className="text-sm text-gray-600 dark:text-gray-400">{subtitle}</p>}
-  </header>
-);
-
-const SummaryStat = ({ label, value }) => (
-  <div className="rounded-2xl bg-primary-deep/10 dark:bg-primary-bright/15 px-4 py-3">
-    <div className="text-xs uppercase tracking-wide text-primary-deep/80 dark:text-primary-bright/80">{label}</div>
-    <div className="mt-1 text-lg font-semibold text-primary-deep dark:text-primary-bright">{value}</div>
-  </div>
-);
-
-const Pill = ({ children, muted }) => (
-  <span
-    className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
-      muted
-        ? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'
-        : 'bg-primary-deep/10 text-primary-deep dark:bg-primary-bright/20 dark:text-primary-bright'
-    }`}
-  >
-    {children}
-  </span>
-);
-
-const ChartPlaceholder = ({ label }) => (
-  <div className="flex h-48 items-center justify-center rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
-    {label} (visualisation pending)
-  </div>
-);
-
-const InsightBadge = ({ label, value }) => (
-  <div className="flex flex-col gap-1 rounded-2xl border border-gray-200/70 dark:border-gray-800/60 bg-white/70 dark:bg-gray-900/60 px-4 py-3">
-    <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</span>
-    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{value}</span>
-  </div>
-);
-
-const ModuleGrid = ({ modules, render }) => (
-  <div className="grid gap-6 lg:grid-cols-12">
-    {modules.map((module) => (
-      <div key={module.id} className={module.span || 'lg:col-span-6 xl:col-span-4'}>
-        {render(module)}
+const CustomTooltip = ({ active, payload, label, currency }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const value = payload[0].value;
+    return (
+      <div className="p-2 text-sm bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700">
+        <p className="font-bold">{label || data.label}</p>
+        <p className="text-primary-500">{data.isCurrency ? formatCurrency(value, currency) : `Value: ${value}`}</p>
       </div>
-    ))}
-  </div>
+    );
+  }
+  return null;
+};
+
+const SectionHeader = ({ icon, title, subtitle }) => (
+    <div className="flex items-start gap-4">
+        <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-primary-500 dark:text-primary-400">{icon}</div>
+        <div>
+            <h2 className="text-2xl font-bold">{title}</h2>
+            <p className="text-gray-500 dark:text-gray-400">{subtitle}</p>
+        </div>
+    </div>
 );
 
-const getActiveModules = (selectedIds) => {
-  const canonical = INSIGHT_MODULES.filter((module) => selectedIds.includes(module.id));
-  if (canonical.length >= MIN_MODULES) return canonical;
+const ModuleCard = ({ title, children, className = "" }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.2 }}
+        transition={{ duration: 0.5 }}
+        className={`glass-card h-full p-4 sm:p-6 rounded-2xl ${className}`}
+    >
+        <h3 className="text-lg font-semibold mb-4">{title}</h3>
+        <div className="space-y-4">{children}</div>
+    </motion.div>
+);
 
-  const fallback = INSIGHT_MODULES.filter((module) => !selectedIds.includes(module.id));
-  const needed = Math.min(MAX_MODULES, MIN_MODULES) - canonical.length;
-  return [...canonical, ...fallback.slice(0, Math.max(needed, 0))];
-};
+const StatCard = ({ label, value }) => (
+    <div className="glass-card p-4 rounded-xl">
+        <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
+        <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+    </div>
+);
+
+// --- Main Insights Page Component ---
 
 export default function Insights() {
-  const { preferences, updatePreference, fetchPreferences } = useSettingsStore();
-  const { data, isLoading, error, lastRefreshedAt, initialize, refresh } = useInsightsStore();
-  const { categories } = useWardrobeStore();
-
-  const categoryNameLookup = useMemo(() => {
-    const map = new Map();
-    const walk = (nodes = []) => {
-      nodes.forEach((node) => {
-        map.set(node.id, node.name);
-        if (Array.isArray(node.children) && node.children.length) {
-          walk(node.children);
-        }
-      });
-    };
-    walk(categories);
-    return map;
-  }, [categories]);
+  const navigate = useNavigate();
+  const { preferences, fetchPreferences } = useSettingsStore();
+  const { data, isLoading, error, refresh, initialize } = useInsightsStore();
 
   useEffect(() => {
-    fetchPreferences();
-  }, [fetchPreferences]);
-
-  useEffect(() => {
+    if (!preferences) fetchPreferences();
     initialize();
-  }, [initialize]);
+  }, [preferences, fetchPreferences, initialize]);
 
-  const selectedModules = preferences?.insightsModules?.selected || [];
-  const activeModules = getActiveModules(selectedModules);
-
-  const handleRefresh = () => {
-    refresh();
-  };
-
-  const handleToggleModule = async (moduleId) => {
-    const current = new Set(selectedModules);
-    const isSelected = current.has(moduleId);
-
-    if (isSelected) {
-      if (current.size <= MIN_MODULES) {
-        return;
-      }
-      current.delete(moduleId);
-    } else {
-      if (current.size >= MAX_MODULES) {
-        return;
-      }
-      current.add(moduleId);
-    }
-    await updatePreference('insightsModules', { selected: Array.from(current) });
-  };
-
-  if (error) {
-    return (
-      <main className="max-w-6xl mx-auto p-4 sm:p-6 md:p-8 space-y-6">
-        <SectionHeading title="Wardrobe Insights" subtitle="Understand how you wear, spend, and maximise your closet." />
-        <div className="rounded-3xl border border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-900/20 p-6">
-          <h2 className="text-lg font-semibold text-red-700 dark:text-red-200">We hit a snag</h2>
-          <p className="mt-2 text-sm text-red-600 dark:text-red-300">
-            {error.message || 'Unable to load insights. Please try refreshing.'}
-          </p>
-          <button
-            type="button"
-            onClick={handleRefresh}
-            className="mt-4 inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-red-700"
-          >
-            Refresh insights
-          </button>
-        </div>
-      </main>
-    );
-  }
-
-  if (isLoading || !data) {
-    return (
-      <main className="max-w-6xl mx-auto p-4 sm:p-6 md:p-8 space-y-6 animate-pulse">
-        <SectionHeading title="Wardrobe Insights" subtitle="Crunching the numbers on your wardrobe..." />
-        <ChartPlaceholder label="Loading insights" />
-      </main>
-    );
-  }
-
-  const {
-    summary,
-    categoryBreakdown = [],
-    colorPalette = [],
-    brandDistribution = [],
-    fabricFocus = [],
-    newestAdditions = [],
-    goToItems = {},
-    valueAndSustainability = {},
-    financial = {},
-    forgottenFavorites = [],
-  } = data;
-
-  const workhorseItems = valueAndSustainability.workhorseItems || [];
-  const closetGhosts = valueAndSustainability.closetGhosts || [];
-  const neverWorn = valueAndSustainability.neverWorn || [];
-  const monthlyActivity = goToItems.monthlyActivity || [];
-  const topGoToItems = goToItems.top || [];
-
-  const summaryCards = (
-    <ModuleCard title="Wardrobe Snapshot" description="Key numbers across your closet">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <SummaryStat label="Total items" value={summary.totalClothes} />
-        <SummaryStat label="Total outfits" value={summary.totalOutfits} />
-        <SummaryStat label="Closet value" value={formatCurrency(summary.totalWardrobeValue)} />
-        <SummaryStat label="Avg cost per wear" value={formatCPW(summary.averageCostPerWear)} />
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Pill>Sustainability score: {summary.sustainabilityScore}</Pill>
-        <Pill muted>Last refreshed {lastRefreshedAt ? new Date(lastRefreshedAt).toLocaleString() : 'just now'}</Pill>
-      </div>
-    </ModuleCard>
+  const activeModuleIds = useMemo(() => 
+    new Set(preferences?.insightsModules?.selected || []),
+    [preferences]
   );
+  
+  if (isLoading || !data) return <div>Loading Insights...</div>;
+  if (error) return <div>Error: {error.message}</div>;
 
-  const renderModule = (module) => {
-    switch (module.id) {
-      case 'overviewCards':
-        return summaryCards;
-      case 'categoryBreakdown':
-        return (
-          <ModuleCard title="Category mix" description="How your closet is distributed">
-            <ChartPlaceholder label="Category breakdown" />
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {categoryBreakdown.map((item) => (
-                <li key={item.label} className="flex items-center justify-between rounded-xl bg-gray-100/60 dark:bg-gray-800/70 px-3 py-2 text-sm text-gray-700 dark:text-gray-200">
-                  <span>{item.label}</span>
-                  <span className="font-semibold">{item.value}</span>
-                </li>
-              ))}
-            </ul>
-          </ModuleCard>
-        );
-      case 'colorPalette':
-        return (
-          <ModuleCard title="Signature palette" description="Top colors you own">
-            <div className="flex flex-wrap gap-3">
-              {colorPalette.map((entry) => (
-                <div key={entry.label} className="flex items-center gap-2">
-                  <span className="h-8 w-8 rounded-full border border-white shadow" style={{ backgroundColor: entry.label }} />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{entry.label}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{entry.value} pieces</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ModuleCard>
-        );
-      case 'brandDistribution':
-        return (
-          <ModuleCard title="Brands you love" description="Most owned labels">
-            <ChartPlaceholder label="Brand distribution" />
-            <ul className="space-y-2">
-              {brandDistribution.map((brand) => (
-                <li key={brand.label} className="flex items-center justify-between rounded-xl border border-gray-200/70 dark:border-gray-800/60 bg-white/70 dark:bg-gray-900/60 px-3 py-2 text-sm">
-                  <span>{brand.label}</span>
-                  <span className="font-semibold">{brand.value}</span>
-                </li>
-              ))}
-            </ul>
-          </ModuleCard>
-        );
-      case 'fabricFocus':
-        return (
-          <ModuleCard title="Fabric focus" description="Materials you wear most">
-            <ChartPlaceholder label="Fabric breakdown" />
-            <div className="flex flex-wrap gap-2">
-              {fabricFocus.map((fabric) => (
-                <Pill key={fabric.label}>{fabric.label} · {fabric.value}</Pill>
-              ))}
-            </div>
-          </ModuleCard>
-        );
-      case 'newestAdditions':
-        return (
-          <ModuleCard title="Newest additions" description="Fresh pieces you recently added">
-            <ul className="divide-y divide-gray-200 dark:divide-gray-800 text-sm">
-              {newestAdditions.map((item) => (
-                <li key={item.id} className="flex justify-between gap-3 py-2">
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{item.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Added {new Date(item.createdAt || Date.now()).toLocaleDateString()}</p>
-                  </div>
-                  <Pill muted>{item.categoryId ? categoryNameLookup.get(item.categoryId) || 'Uncategorised' : 'Uncategorised'}</Pill>
-                </li>
-              ))}
-            </ul>
-          </ModuleCard>
-        );
-      case 'topGoToItems':
-        return (
-          <ModuleCard title="Your go-to items" description="Most worn clothes and outfits">
-            {goToItems.goToItem && (
-              <div className="rounded-2xl border border-primary-deep/20 dark:border-primary-bright/30 bg-primary-deep/10 dark:bg-primary-bright/15 px-4 py-3">
-                <p className="text-xs uppercase text-primary-deep/80 dark:text-primary-bright/70">Ultimate go-to</p>
-                <p className="mt-1 text-sm font-semibold text-primary-deep dark:text-primary-bright">{goToItems.goToItem.cloth.name}</p>
-              </div>
-            )}
-            <ul className="space-y-2">
-              {topGoToItems.map(({ cloth, count }) => (
-                <li key={cloth.id} className="flex items-center justify-between rounded-xl bg-gray-100/60 dark:bg-gray-800/60 px-3 py-2 text-sm">
-                  <span>{cloth.name}</span>
-                  <Pill>{count} wears</Pill>
-                </li>
-              ))}
-            </ul>
-            {goToItems.mostRepeatedOutfit && (
-              <InsightBadge label="Most repeated outfit" value={`${goToItems.mostRepeatedOutfit.outfit.name} · ${goToItems.mostRepeatedOutfit.count} wears`} />
-            )}
-            {goToItems.favoriteGoToOutfit && (
-              <InsightBadge label="Favorite go-to outfit" value={`${goToItems.favoriteGoToOutfit.outfit.name}`} />
-            )}
-          </ModuleCard>
-        );
-      case 'wearTrend':
-        return (
-          <ModuleCard title="Wear frequency" description="Monthly wear counts over time">
-            <ChartPlaceholder label="Monthly wear trend" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600 dark:text-gray-300">
-              {monthlyActivity.map((item) => (
-                <div key={item.month} className="flex items-center justify-between rounded-xl border border-gray-200/70 dark:border-gray-800/60 px-3 py-2">
-                  <span>{item.month}</span>
-                  <span className="font-medium">{item.count}</span>
-                </div>
-              ))}
-            </div>
-          </ModuleCard>
-        );
-      case 'forgottenFavorites':
-        return (
-          <ModuleCard title="Forgotten favorites" description="Favorites waiting for a comeback">
-            <ul className="space-y-2 text-sm">
-              {forgottenFavorites.length ? forgottenFavorites.map(({ cloth, lastWorn }) => (
-                <li key={cloth.id} className="flex items-center justify-between rounded-xl bg-orange-50 dark:bg-orange-900/20 px-3 py-2">
-                  <span>{cloth.name}</span>
-                  <span className="text-xs text-orange-600 dark:text-orange-300">Last worn: {lastWorn ? new Date(lastWorn).toLocaleDateString() : 'Never'}</span>
-                </li>
-              )) : <p>No forgotten favourites right now.</p>}
-            </ul>
-          </ModuleCard>
-        );
-      case 'uniformCombo':
-        return (
-          <ModuleCard title="Your uniform" description="Most frequent category combo">
-            {goToItems.uniform ? (
-              <div className="flex flex-wrap gap-2">
-                {goToItems.uniform.combo.split(' + ').map((part) => (
-                  <Pill key={part}>{part}</Pill>
-                ))}
-                <Pill muted>{goToItems.uniform.count} repeats</Pill>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No outfit combo pattern detected yet.</p>
-            )}
-          </ModuleCard>
-        );
-      case 'valueLeaders':
-        return (
-          <ModuleCard title="Best value pieces" description="High wear counts for minimal cost">
-            <ul className="space-y-2 text-sm">
-              {workhorseItems.map(({ cloth, costPerWear, wears }) => (
-                <li key={cloth.id} className="flex items-center justify-between rounded-xl bg-green-50 dark:bg-green-900/20 px-3 py-2">
-                  <div>
-                    <p className="font-medium text-green-800 dark:text-green-200">{cloth.name}</p>
-                    <p className="text-xs text-green-600 dark:text-green-300">{wears} wears</p>
-                  </div>
-                  <Pill>${costPerWear.toFixed(2)}/wear</Pill>
-                </li>
-              ))}
-            </ul>
-          </ModuleCard>
-        );
-      case 'valueLaggards':
-        return (
-          <ModuleCard title="Worst value pieces" description="Items needing more wears">
-            <ul className="space-y-2 text-sm">
-              {valueAndSustainability.worstValueItem ? (
-                <li className="flex items-center justify-between rounded-xl bg-red-50 dark:bg-red-900/20 px-3 py-2">
-                  <div>
-                    <p className="font-medium text-red-700 dark:text-red-200">{valueAndSustainability.worstValueItem.cloth.name}</p>
-                    <p className="text-xs text-red-600 dark:text-red-300">Consider styling this soon</p>
-                  </div>
-                  <Pill>{formatCPW(valueAndSustainability.worstValueItem.costPerWear)}</Pill>
-                </li>
-              ) : (
-                <p>No underperforming items yet 🎉</p>
-              )}
-            </ul>
-          </ModuleCard>
-        );
-      case 'sustainabilityScore':
-        return (
-          <ModuleCard title="Sustainability score" description="Average wears per item">
-            <div className="flex flex-col items-center gap-3 rounded-3xl border border-emerald-200/70 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-900/20 px-6 py-8">
-              <span className="text-4xl font-semibold text-emerald-700 dark:text-emerald-200">{valueAndSustainability.sustainabilityScore ?? 0}</span>
-              <p className="text-sm text-emerald-700 dark:text-emerald-200 text-center">Higher scores mean you are re-wearing items often. Aim for 70+ to maximise sustainability.</p>
-            </div>
-          </ModuleCard>
-        );
-      case 'closetGhosts':
-        return (
-          <ModuleCard title="Closet ghosts" description="Pieces you have ignored for 6 months or more">
-            <ul className="space-y-2 text-sm">
-              {closetGhosts.map(({ cloth, lastWorn }) => (
-                <li key={cloth.id} className="flex items-center justify-between rounded-xl bg-purple-50 dark:bg-purple-900/20 px-3 py-2">
-                  <span>{cloth.name}</span>
-                  <span className="text-xs text-purple-600 dark:text-purple-300">Last worn: {lastWorn ? new Date(lastWorn).toLocaleDateString() : 'Never'}</span>
-                </li>
-              ))}
-            </ul>
-          </ModuleCard>
-        );
-      case 'neverWorn':
-        return (
-          <ModuleCard title="Never worn" description="Pieces still waiting for their debut">
-            <ul className="space-y-2 text-sm">
-              {neverWorn.map((cloth) => (
-                <li key={cloth.id} className="flex items-center justify-between rounded-xl border border-gray-200/70 dark:border-gray-800/60 px-3 py-2">
-                  <span>{cloth.name}</span>
-                  <Pill muted>Added {new Date(cloth.createdAt || Date.now()).toLocaleDateString()}</Pill>
-                </li>
-              ))}
-            </ul>
-          </ModuleCard>
-        );
-      case 'financialOverview':
-        return (
-          <ModuleCard title="Financial snapshot" description="Investment at a glance">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <InsightBadge label="Average price per item" value={formatCurrency(financial.averagePrice)} />
-              <InsightBadge label="Total wardrobe value" value={formatCurrency(financial.totalWardrobeValue)} />
-              {financial.mostExpensiveItem && (
-                <InsightBadge label="Most expensive item" value={`${financial.mostExpensiveItem.cloth.name} · ${formatCurrency(financial.mostExpensiveItem.cost)}`} />
-              )}
-            </div>
-          </ModuleCard>
-        );
-      case 'spendByCategory':
-        return (
-          <ModuleCard title="Investment by category" description="Where your budget goes">
-            <ChartPlaceholder label="Category spending" />
-            <ul className="space-y-2 text-sm">
-              {(financial.categorySpend || []).map((entry) => (
-                <li key={entry.label} className="flex items-center justify-between rounded-xl bg-white/70 dark:bg-gray-900/70 px-3 py-2">
-                  <span>{entry.label}</span>
-                  <span className="font-semibold">{formatCurrency(entry.value)}</span>
-                </li>
-              ))}
-            </ul>
-          </ModuleCard>
-        );
-      case 'spendByBrand':
-        return (
-          <ModuleCard title="Investment by brand" description="Brands you invest in most">
-            <ChartPlaceholder label="Brand spending" />
-            <ul className="space-y-2 text-sm">
-              {(financial.brandSpend || []).map((entry) => (
-                <li key={entry.label} className="flex items-center justify-between rounded-xl bg-white/70 dark:bg-gray-900/70 px-3 py-2">
-                  <span>{entry.label}</span>
-                  <span className="font-semibold">{formatCurrency(entry.value)}</span>
-                </li>
-              ))}
-            </ul>
-          </ModuleCard>
-        );
-      case 'seasonalSpend':
-        return (
-          <ModuleCard title="Seasonal spend" description="How budgets change across seasons">
-            <ChartPlaceholder label="Seasonal spend" />
-            <div className="flex flex-wrap gap-2">
-              {(financial.seasonalSpend || []).map((entry) => (
-                <Pill key={entry.label}>{entry.label}: {formatCurrency(entry.value)}</Pill>
-              ))}
-            </div>
-          </ModuleCard>
-        );
-      default:
-        return null;
-    }
-  };
-
+  // --- FIX: Added 'wearTrend' back to the destructuring ---
+  const { summary, categoryBreakdown = [], colorPalette = [], brandDistribution = [], fabricFocus = [], newestAdditions = [], wearTrend = [], goToItems = {}, valueAndSustainability = {}, financial = {} } = data;
+  
   return (
-    <main className="max-w-6xl mx-auto p-4 sm:p-6 md:p-8 space-y-8">
-      <div className="flex flex-col gap-6">
-        <SectionHeading title="Wardrobe Insights" subtitle="Your personal style dashboard." />
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={handleRefresh}
-            className="inline-flex items-center gap-2 rounded-full bg-primary-deep px-4 py-2 text-sm font-semibold text-white shadow hover:bg-primary-deep/90"
-          >
-            Refresh insights
-          </button>
-          <Pill muted>
-            Showing {activeModules.length} modules · choose between {MIN_MODULES} and {MAX_MODULES}
-          </Pill>
+    <main className="max-w-7xl mx-auto p-4 sm:p-6 space-y-16">
+      {/* --- Main Header --- */}
+      <motion.header 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="space-y-6"
+      >
+        <div>
+            <h1 className="text-4xl font-extrabold mb-2">Wardrobe Insights</h1>
+            <p className="text-gray-600 dark:text-gray-400">Your style dashboard.</p>
         </div>
-      </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard label="Total Items" value={summary.totalClothes} />
+            <StatCard label="Total Outfits" value={summary.totalOutfits} />
+            <StatCard label="Closet Value" value={formatCurrency(summary.totalWardrobeValue, preferences?.currency)} />
+            <StatCard label="Avg. Cost/Wear" value={formatCPW(summary.averageCostPerWear, preferences?.currency)} />
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={refresh}><RefreshCw size={16} className="mr-2"/> Refresh</Button>
+            <Button variant="secondary" onClick={() => navigate('/settings/insights')}><Settings size={16} className="mr-2"/> Customize Dashboard</Button>
+        </div>
+      </motion.header>
 
-      {summaryCards}
+      {/* --- Section 1: Closet Composition --- */}
+      <section className="space-y-6">
+        <SectionHeader icon={<Gem size={24}/>} title="Closet Composition" subtitle="A look at what your wardrobe is made of." />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {activeModuleIds.has('categoryBreakdown') && <ModuleCard title="Category Mix"><ResponsiveContainer width="100%" height={250}><BarChart data={categoryBreakdown} layout="vertical" margin={{ left: 20 }}><XAxis type="number" hide /><YAxis dataKey="label" type="category" width={80} tickLine={false} axisLine={false} className="text-xs"/><Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(139, 92, 246, 0.1)' }} /><Bar dataKey="value" fill="var(--color-primary)" radius={[0, 8, 8, 0]} barSize={16} /></BarChart></ResponsiveContainer></ModuleCard>}
+            {activeModuleIds.has('colorPalette') && <ModuleCard title="Signature Palette"><div className="flex flex-wrap gap-4 items-center">{colorPalette.slice(0, 10).map(c => <div key={c.label} className="text-center group"><div className="w-10 h-10 rounded-full mb-1 border-2 border-white dark:border-gray-700 shadow-md group-hover:scale-110 transition-transform" style={{backgroundColor: c.label}}></div><p className="text-xs text-gray-500">{c.value}</p></div>)}</div></ModuleCard>}
+            {activeModuleIds.has('brandDistribution') && <ModuleCard title="Brands You Love"><ul className="space-y-3">{brandDistribution.slice(0, 5).map(b => <li key={b.label} className="flex justify-between text-sm items-center"><span>{b.label}</span><strong className="tag">{b.value} items</strong></li>)}</ul></ModuleCard>}
+            {activeModuleIds.has('fabricFocus') && <ModuleCard title="Fabric Focus"><div className="flex flex-wrap gap-2">{fabricFocus.map(f => <span key={f.label} className="tag">{f.label} ({f.value})</span>)}</div></ModuleCard>}
+            {activeModuleIds.has('newestAdditions') && <ModuleCard title="Newest Additions"><ul className="space-y-3">{newestAdditions.slice(0, 5).map(item => <li key={item.id} className="text-sm"><strong>{item.name}</strong><p className="text-xs text-gray-500">Added {new Date(item.createdAt).toLocaleDateString()}</p></li>)}</ul></ModuleCard>}
+        </div>
+      </section>
+      
+      {/* --- Section 2: Wear & Usage Patterns --- */}
+      <section className="space-y-6">
+        <SectionHeader icon={<Activity size={24}/>} title="Wear & Usage Patterns" subtitle="How you interact with your clothes." />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {activeModuleIds.has('topGoToItems') && <ModuleCard title="Your Go-To Items"><ul className="space-y-2">{goToItems.top?.slice(0, 5).map(({cloth, count}) => <li key={cloth.id} className="flex justify-between text-sm items-center"><span>{cloth.name}</span><strong className="tag">{count} wears</strong></li>)}</ul></ModuleCard>}
+            {activeModuleIds.has('wearTrend') && <ModuleCard title="Wear Frequency"><ResponsiveContainer width="100%" height={250}><LineChart data={wearTrend} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}><XAxis dataKey="month" className="text-xs" /><YAxis /><Tooltip content={<CustomTooltip />} /><Line type="monotone" dataKey="count" stroke="var(--color-primary)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 8 }} /></LineChart></ResponsiveContainer></ModuleCard>}
+            {activeModuleIds.has('closetGhosts') && <ModuleCard title="Closet Ghosts"><ul className="space-y-2">{valueAndSustainability.closetGhosts?.slice(0,5).map(({cloth}) => <li key={cloth.id} className="text-sm">{cloth.name}</li>)}</ul></ModuleCard>}
+            {activeModuleIds.has('neverWorn') && <ModuleCard title="Never Worn Items"><ul className="space-y-2">{valueAndSustainability.neverWorn?.slice(0,5).map(c => <li key={c.id} className="text-sm">{c.name}</li>)}</ul></ModuleCard>}
+        </div>
+      </section>
 
-      <ModuleGrid
-        modules={activeModules}
-        render={(module) => (
-          <div className="space-y-3">
-            {renderModule(module)}
-            <button
-              type="button"
-              onClick={() => handleToggleModule(module.id)}
-              className="text-xs text-gray-500 dark:text-gray-400 underline"
-            >
-              {selectedModules.includes(module.id) ? 'Remove from dashboard' : 'Add to dashboard'}
-            </button>
-          </div>
-        )}
-      />
+      {/* --- Section 3: Financial Overview --- */}
+      <section className="space-y-6">
+        <SectionHeader icon={<DollarSign size={24}/>} title="Financial Overview" subtitle="Understanding the value of your wardrobe." />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {activeModuleIds.has('spendByCategory') && <ModuleCard title="Investment by Category"><ResponsiveContainer width="100%" height={250}><PieChart><Pie data={financial.categorySpend} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={80} label>{(financial.categorySpend || []).map((entry, index) => <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />)}</Pie><Tooltip content={<CustomTooltip currency={preferences?.currency} />} /></PieChart></ResponsiveContainer></ModuleCard>}
+            {activeModuleIds.has('financialOverview') && <ModuleCard title="Financial Snapshot"><div className="space-y-3 text-sm"><div><p className="text-gray-500">Avg. Price/Item</p><strong>{formatCurrency(financial.averagePrice, preferences?.currency)}</strong></div>{financial.mostExpensiveItem && <div><p className="text-gray-500">Most Expensive</p><strong>{financial.mostExpensiveItem.cloth.name}</strong></div>}</div></ModuleCard>}
+            {activeModuleIds.has('valueLeaders') && <ModuleCard title="Best Value Items"><ul className="space-y-2">{valueAndSustainability.workhorseItems?.slice(0,3).map(i => <li key={i.cloth.id} className="text-sm flex justify-between"><span>{i.cloth.name}</span> <strong className="tag-green">{formatCPW(i.costPerWear, preferences?.currency)}/wear</strong></li>)}</ul></ModuleCard>}
+            {activeModuleIds.has('sustainabilityScore') && <ModuleCard title="Sustainability Score" className="flex flex-col justify-center items-center text-center"><div className="text-5xl font-bold text-green-500">{valueAndSustainability.sustainabilityScore ?? 0}</div><p className="text-xs text-gray-500 mt-2">A high score means you re-wear items often. Aim for 70+.</p></ModuleCard>}
+        </div>
+      </section>
     </main>
   );
 }

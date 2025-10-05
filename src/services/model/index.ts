@@ -5,3 +5,4 @@ export * from './outfit.model';
 export * from './preferences.model';
 export * from './trip.model';
 export * from './user.model';
+export * from './essential.model';

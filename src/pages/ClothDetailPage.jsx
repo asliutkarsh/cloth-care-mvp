@@ -1,254 +1,341 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useWardrobeStore } from '../stores/useWardrobeStore';
-import {
-  ArrowLeft,
-  Edit,
-  Trash2,
-  Tag as TagIcon,
-  Palette,
-  DollarSign,
-  Sparkles,
-  Droplet,
-  Calendar,
-  Layers,
-  Star,
-} from 'lucide-react';
+import { useSettingsStore } from '../stores/useSettingsStore';
+import { WashHistoryService, ActivityLogService, ClothService } from '../services/crud';
+import { ArrowLeft, Edit, Trash2, Tally1,Tag, Palette, DollarSign, Sparkles, Droplet, Calendar, Layers, Star, Copy, Shirt, History, SearchX, CreditCard } from 'lucide-react';
 import { Button } from '../components/ui';
 import ClothModal from '../components/modal/ClothModal';
 import ConfirmationModal from '../components/modal/ConfirmationModal';
 import { useToast } from '../context/ToastProvider.jsx';
+import { formatPrice } from '../utils/formatting';
+import ClothDetailSkeleton from '../components/skeleton/ClothDetailSkeleton';
+
+// --- Reusable Components ---
 
 const statusMeta = {
-  clean: { label: 'Clean', tone: 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-200' },
-  dirty: { label: 'Dirty', tone: 'text-rose-600 bg-rose-100 dark:bg-rose-900/30 dark:text-rose-200' },
-  needs_pressing: { label: 'Needs Pressing', tone: 'text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-200' },
+  clean: { label: 'Clean', icon: <Sparkles size={12} />, tone: 'text-emerald-700 bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-200' },
+  dirty: { label: 'In Laundry', icon: <Droplet size={12} />, tone: 'text-rose-700 bg-rose-100 dark:bg-rose-900/40 dark:text-rose-200' },
+  needs_pressing: { label: 'Needs Pressing', icon: <Shirt size={12} />, tone: 'text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-200' },
 };
 
-const InfoCard = ({ icon, label, value }) => (
-  <div className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/80 dark:bg-gray-900/70 p-4 shadow-sm">
-    <div className="flex items-center gap-3 mb-3">
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800/80 text-gray-600 dark:text-gray-200">
+const InfoCard = ({ icon, label, value, children }) => (
+  <div className="glass-card flex-1 p-4 rounded-xl">
+    <div className="flex items-center gap-3 mb-2">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800/80 text-gray-600 dark:text-gray-300">
         {icon}
       </div>
-      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</span>
+      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</span>
     </div>
-    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{value ?? 'N/A'}</p>
+    <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{value ?? 'N/A'}</p>
+    {children}
   </div>
 );
 
-const formatCurrency = (value) => {
-  if (value == null || value === '') return null;
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return null;
-  return `$${parsed.toFixed(2)}`;
+const TabButton = ({ label, isActive, onClick }) => (
+  <button onClick={onClick} className="relative px-4 py-2 text-sm font-medium transition-colors">
+    <span className={isActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}>{label}</span>
+    {isActive && <motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500" layoutId="tab-underline" />}
+  </button>
+);
+
+const NotFoundState = () => {
+  const navigate = useNavigate();
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-24">
+      <SearchX size={64} className="text-gray-300 dark:text-gray-600 mb-4" />
+      <h2 className="text-2xl font-bold mb-2">Item Not Found</h2>
+      <p className="text-gray-500 dark:text-gray-400 mb-6">The clothing item you're looking for might have been moved or deleted.</p>
+      <Button onClick={() => navigate('/wardrobe')}>
+        <ArrowLeft size={16} className="mr-2" /> Back to Wardrobe
+      </Button>
+    </div>
+  );
 };
+
+
+// --- Main Page Component ---
 
 export default function ClothDetailPage() {
   const navigate = useNavigate();
   const { clothId } = useParams();
   const { clothes, outfits = [], categories = [], updateCloth, removeCloth, markClothesDirty, isInitialized } = useWardrobeStore();
+  const { preferences } = useSettingsStore();
   const { addToast } = useToast();
 
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [isConfirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [washHistory, setWashHistory] = useState([]);
+  const [wearHistory, setWearHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState(null);
+  const [deleteImpact, setDeleteImpact] = useState(null);
+  const [isDeleteImpactLoading, setDeleteImpactLoading] = useState(false);
+  const [deleteImpactError, setDeleteImpactError] = useState(null);
+  const [careCursor, setCareCursor] = useState(null);
+  const [careHasMore, setCareHasMore] = useState(false);
+  const [isCareLoadingMore, setIsCareLoadingMore] = useState(false);
+  const [activeTab, setActiveTab] = useState('details');
 
   const cloth = useMemo(() => clothes.find((c) => c.id === clothId), [clothes, clothId]);
+  const lastWornDate = useMemo(() => {
+    if (wearHistory.length > 0) {
+      const mostRecentWear = wearHistory[0];
+      try {
+        return new Date(mostRecentWear.date).toLocaleDateString();
+      } catch (error) {
+        console.warn('Invalid date in wear history:', mostRecentWear.date);
+        return null;
+      }
+    }
+    return null;
+  }, [wearHistory]);
 
-  const flatCategories = useMemo(
-    () => categories.flatMap((category) => [category, ...(category.children || [])]),
-    [categories]
-  );
+  const category = useMemo(() => categories.find(c => c.id === cloth?.categoryId), [categories, cloth]);
+  const relatedOutfits = useMemo(() => outfits.filter((outfit) => outfit.clothIds?.includes(clothId)), [outfits, clothId]);
 
-  const category = useMemo(() => {
-    if (!cloth) return null;
-    return flatCategories.find((cat) => cat.id === cloth.categoryId) || null;
-  }, [cloth, flatCategories]);
+  useEffect(() => {
+    if (clothId && isInitialized) {
+      setHistoryLoading(true);
+      setHistoryError(null);
+      Promise.all([
+        WashHistoryService.getHistoryForCloth(clothId),
+        ActivityLogService.getHistoryForCloth(clothId),
+      ]).then(([washData, wearData]) => {
+        setWashHistory(washData.items || []);
+        setCareCursor(washData.nextCursor);
+        setCareHasMore(Boolean(washData.nextCursor));
+        setWearHistory(wearData || []);
+      }).catch(err => {
+        console.error("Failed to load history:", err);
+        setHistoryError("Could not load history.");
+      }).finally(() => {
+        setHistoryLoading(false);
+      });
+    }
+  }, [clothId, isInitialized]);
 
-  const relatedOutfits = useMemo(() => {
-    if (!cloth) return [];
-    return outfits.filter((outfit) => (outfit.clothIds || []).includes(cloth.id));
-  }, [outfits, cloth]);
+  const loadMoreCareHistory = useCallback(async () => {
+    if (!careHasMore || isCareLoadingMore) return;
+    setIsCareLoadingMore(true);
+    try {
+      const nextPage = await WashHistoryService.getHistoryForCloth(clothId, { cursor: careCursor });
+      setWashHistory(prev => [...prev, ...nextPage.items]);
+      setCareCursor(nextPage.nextCursor);
+      setCareHasMore(Boolean(nextPage.nextCursor));
+    } catch (error) {
+      addToast("Failed to load more history.", { type: 'error' });
+    } finally {
+      setIsCareLoadingMore(false);
+    }
+  }, [careHasMore, careCursor, clothId, isCareLoadingMore, addToast]);
 
-  if (!isInitialized) {
-    return <div className="max-w-5xl mx-auto p-6">Loading item...</div>;
-  }
-  if (!cloth) {
-    return <div className="max-w-5xl mx-auto p-6">Cloth not found. It may have been deleted.</div>;
-  }
+  useEffect(() => {
+    let isMounted = true;
+    if (isConfirmDeleteOpen && clothId) {
+      setDeleteImpactLoading(true);
+      setDeleteImpactError(null);
+      ClothService.getReferenceCounts(clothId)
+        .then((counts) => {
+          if (isMounted) {
+            setDeleteImpact(counts);
+          }
+        })
+        .catch((error) => {
+          console.error('Failed to fetch cloth references before deletion:', error);
+          if (isMounted) {
+            setDeleteImpact(null);
+            setDeleteImpactError('Unable to check where this item is used right now.');
+          }
+        })
+        .finally(() => {
+          if (isMounted) {
+            setDeleteImpactLoading(false);
+          }
+        });
+    }
 
-  const costValue = formatCurrency(cloth.cost);
-  const wearCount = cloth.currentWearCount ?? 0;
-  const costPerWear = costValue && wearCount > 0 ? `$${(Number(cloth.cost) / wearCount).toFixed(2)}` : costValue ? `${costValue} (not worn yet)` : null;
-  const status = statusMeta[cloth.status] || { label: cloth.status || 'Unknown', tone: 'text-gray-700 bg-gray-100 dark:bg-gray-800/70 dark:text-gray-200' };
+    return () => {
+      isMounted = false;
+    };
+  }, [isConfirmDeleteOpen, clothId]);
+
+  const deleteMessage = useMemo(() => {
+    const itemName = cloth?.name || 'this item';
+    const baseMessage = `Are you sure you want to delete "${itemName}"?`;
+
+    if (isDeleteImpactLoading) {
+      return `${baseMessage} Checking related outfits and trips...`;
+    }
+
+    if (deleteImpactError) {
+      return `${baseMessage} Deleting will remove it from anywhere it is used.`;
+    }
+
+    const impact = deleteImpact || { outfits: 0, trips: 0 };
+    const parts = [];
+    if (impact.outfits > 0) {
+      parts.push(`${impact.outfits} outfit${impact.outfits === 1 ? '' : 's'}`);
+    }
+    if (impact.trips > 0) {
+      parts.push(`${impact.trips} trip${impact.trips === 1 ? '' : 's'}`);
+    }
+
+    if (!parts.length) {
+      return `${baseMessage} This action cannot be undone.`;
+    }
+
+    const joined = parts.join(' and ');
+    return `${baseMessage} This will also remove it from ${joined}.`;
+  }, [cloth, deleteImpact, deleteImpactError, isDeleteImpactLoading]);
+
+  if (!isInitialized) return <ClothDetailSkeleton />;
+  if (!cloth) return <NotFoundState />;
+
+  const status = statusMeta[cloth.status] || { label: 'Unknown', icon: <Shirt size={12} />, tone: 'text-gray-700 bg-gray-100' };
+  const costPerWear = cloth.cost && cloth.totalWearCount > 0
+    ? formatPrice(Number(cloth.cost) / cloth.totalWearCount, preferences?.currency)
+    : cloth.cost ? `${formatPrice(cloth.cost, preferences?.currency)} (not worn yet)` : null;
 
   const maxWearCount = category?.maxWearCount ?? 3;
-  const remaining = Math.max(maxWearCount - wearCount, 0);
-  const progress = Math.min((wearCount / Math.max(maxWearCount, 1)) * 100, 100);
+  const wearCount = cloth.currentWearCount ?? 0;
+  const remainingWears = Math.max(maxWearCount - wearCount, 0);
+  const wearProgress = Math.min((wearCount / Math.max(maxWearCount, 1)) * 100, 100);
 
   const handleDelete = async () => {
     await removeCloth(clothId);
+    setConfirmDeleteOpen(false);
     navigate('/wardrobe');
   };
 
-  return (
-    <main className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
-      <header className="flex items-center gap-4">
-        <Button onClick={() => navigate('/wardrobe')} variant="ghost" size="icon" aria-label="Back to wardrobe">
-          <ArrowLeft />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{cloth.name}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Added {new Date(cloth.createdAt || Date.now()).toLocaleDateString()}</p>
-        </div>
-      </header>
+  const containerVariants = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
+  const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1 } };
 
-      <section className="overflow-hidden rounded-3xl border border-gray-200/70 dark:border-gray-800">
-        <div className="relative grid grid-cols-1 md:grid-cols-[320px_1fr] bg-white dark:bg-gray-900">
-          <div className="relative h-72 md:h-full">
-            {cloth.image ? (
-              <img src={cloth.image} alt={cloth.name} className="h-full w-full object-cover" />
-            ) : (
-              <div
-                className="h-full w-full"
-                style={{ background: `linear-gradient(135deg, ${cloth.color || '#111827'} 0%, #111827 100%)` }}
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/30 to-transparent" />
-            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${status.tone}`}>{status.label}</span>
-                {category?.name && (
-                  <span className="rounded-full bg-white/90 dark:bg-gray-900/80 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-200">
-                    {category.name}
+  return (
+    <motion.main variants={containerVariants} initial="hidden" animate="visible" className="max-w-5xl mx-auto p-4 sm:p-6 space-y-8">
+      <motion.header variants={itemVariants} className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Button onClick={() => navigate('/wardrobe')} variant="ghost" size="icon" className="rounded-full flex-shrink-0" aria-label="Go back"><ArrowLeft size={20} /></Button>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">{cloth.name}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Added on {new Date(cloth.createdAt).toLocaleDateString()}</p>
+          </div>
+        </div>
+        <Button onClick={() => setEditModalOpen(true)} className="flex-shrink-0"><Edit size={16} className="mr-2" /> Edit</Button>
+      </motion.header>
+
+      <motion.section variants={itemVariants} className=" rounded-2xl overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,_320px)_1fr]">
+          <div className="relative h-80 md:h-full">
+            <div className="w-full h-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${cloth.color || '#4b5563'}, #1f2937)` }}>
+              {cloth.image ? <img src={cloth.image} alt={cloth.name} className="w-full h-full object-cover" /> : <Shirt size={80} className="text-white/20" />}
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="flex items-center gap-2">
+                <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${status.tone}`}>{status.icon}{status.label}</span>
+                {category?.name && <span className="rounded-full bg-white/20 px-3 py-1 text-xs text-white font-medium backdrop-blur-sm">{category.name}</span>}
+                {cloth.favorite && (
+                  <span className="flex items-center gap-1 rounded-full bg-amber-100/80 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
+                    <Star className="h-3.5 w-3.5" /> Favourite
                   </span>
                 )}
+
               </div>
-              {cloth.favorite && (
-                <span className="flex items-center gap-1 rounded-full bg-amber-100/80 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
-                  <Star className="h-3.5 w-3.5" /> Favourite
-                </span>
-              )}
             </div>
           </div>
-
-          <div className="p-6 lg:p-8 space-y-6">
+          <div className="p-4 sm:p-6 space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <InfoCard icon={<Sparkles className="h-4 w-4" />} label="Times worn" value={`${wearCount} ${wearCount === 1 ? 'time' : 'times'}`} />
-              <InfoCard icon={<DollarSign className="h-4 w-4" />} label="Total cost" value={costValue || '—'} />
-              <InfoCard icon={<Droplet className="h-4 w-4" />} label="Cost per wear" value={costPerWear || '—'} />
+              <InfoCard icon={<History size={16} />} label="Total Wears" value={`${cloth.totalWearCount}`}>
+                {lastWornDate ? (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Last worn: {lastWornDate}
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                    Never worn
+                  </p>
+                )}
+              </InfoCard>
+              <InfoCard icon={<CreditCard size={16} />} label="Cost" value={cloth.cost ? formatPrice(cloth.cost, preferences?.currency) : 'N/A'} />
+              <InfoCard icon={<DollarSign size={16} />} label="Cost / Wear" value={costPerWear ? formatPrice(costPerWear, preferences?.currency) : 'N/A'} />
             </div>
-
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium text-gray-700 dark:text-gray-200">Wears until laundry</span>
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {remaining > 0 ? `${remaining} wear${remaining === 1 ? '' : 's'} until wash` : 'Time for a wash!'}
+                  {remainingWears > 0 ? `${remainingWears} wear${remainingWears === 1 ? '' : 's'} until wash` : 'Time for a wash!'}
                 </span>
               </div>
               <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
-                <div className="h-full rounded-full bg-primary-deep dark:bg-primary-bright transition-all" style={{ width: `${progress}%` }} />
+                <div className="h-full rounded-full bg-primary-deep dark:bg-primary-bright transition-all" style={{ width: `${wearProgress}%` }} />
               </div>
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Button onClick={() => setEditModalOpen(true)} className="flex items-center gap-2">
-                <Edit className="h-4 w-4" /> Edit details
-              </Button>
-              <Button
-                variant="secondary"
-                className="flex items-center gap-2"
-                onClick={() => updateCloth(clothId, { favorite: !cloth.favorite })}
-              >
-                <Star className={`h-4 w-4 ${cloth.favorite ? 'fill-current text-amber-500' : ''}`} />
-                {cloth.favorite ? 'Remove favourite' : 'Mark favourite'}
-              </Button>
-              <Button
-                variant="ghost"
-                className="flex items-center gap-2"
-                onClick={async () => {
-                  await markClothesDirty([clothId]);
-                  addToast(`${cloth.name} marked as dirty.`, { type: 'success' });
-                }}
-              >
-                <Droplet className="h-4 w-4" /> Mark dirty
-              </Button>
-              <Button variant="danger" className="flex items-center gap-2" onClick={() => setConfirmDeleteOpen(true)}>
-                <Trash2 className="h-4 w-4" /> Delete item
-              </Button>
+              <Button variant="secondary" onClick={() => updateCloth(cloth.id, { favorite: !cloth.favorite })}><Star size={16} className={`mr-2 ${cloth.favorite ? 'fill-yellow-400 text-yellow-500' : ''}`} /> {cloth.favorite ? 'Unfavorite' : 'Favorite'}</Button>
+              <Button variant="secondary" onClick={async () => { await markClothesDirty([clothId]); addToast('Marked as dirty.', { type: 'success' }); }}><Droplet size={16} className="mr-2" /> Mark Dirty</Button>
+              <Button variant="danger" onClick={() => setConfirmDeleteOpen(true)}><Trash2 size={16} className="mr-2" /> Delete</Button>
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <InfoCard icon={<TagIcon className="h-4 w-4" />} label="Category" value={category?.name || '—'} />
-        <InfoCard icon={<Palette className="h-4 w-4" />} label="Color" value={cloth.color || '—'} />
-        <InfoCard icon={<DollarSign className="h-4 w-4" />} label="Brand" value={cloth.brand || '—'} />
-        <InfoCard icon={<Sparkles className="h-4 w-4" />} label="Material" value={cloth.material || '—'} />
-        <InfoCard icon={<Calendar className="h-4 w-4" />} label="Season" value={cloth.season || 'All season'} />
-        <InfoCard icon={<Calendar className="h-4 w-4" />} label="Purchase date" value={cloth.purchaseDate || '—'} />
-      </section>
+      <motion.section variants={itemVariants}>
+        <h3 className="text-xl font-semibold mb-4">Details</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <InfoCard icon={<Tag size={16} />} label="Category" value={category?.name} />
+          <InfoCard icon={<Palette size={16} />} label="Color" value={cloth.color} />
+          <InfoCard icon={<Layers size={16} />} label="Material" value={cloth.material} />
+          <InfoCard icon={<Sparkles size={16} />} label="Brand" value={cloth.brand} />
+          <InfoCard icon={<Calendar size={16} />} label="Season" value={cloth.season} />
+          <InfoCard icon={<Calendar size={16} />} label="Purchased" value={cloth.purchaseDate ? new Date(cloth.purchaseDate).toLocaleDateString() : 'N/A'} />
+        </div>
+      </motion.section>
 
-      <section className="space-y-4 rounded-3xl border border-gray-200/70 dark:border-gray-800/70 bg-white/85 dark:bg-gray-900/70 p-6">
-        <header className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-deep/10 text-primary-deep dark:bg-primary-bright/20 dark:text-primary-bright">
-            <Layers className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Outfits featuring this item</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{relatedOutfits.length} saved outfit{relatedOutfits.length === 1 ? '' : 's'}</p>
-          </div>
-        </header>
-        {relatedOutfits.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
-            This piece hasn’t been added to any outfits yet.
-          </p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {relatedOutfits.map((outfit) => (
-              <button
-                key={outfit.id}
-                onClick={() => navigate(`/wardrobe/outfit/${outfit.id}`)}
-                className="rounded-2xl border border-gray-200/70 dark:border-gray-700/60 bg-white/90 dark:bg-gray-900/70 p-4 text-left transition hover:border-primary-deep/60 hover:shadow-lg"
-              >
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{outfit.name}</p>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {(outfit.clothIds?.length || 0)} item{(outfit.clothIds?.length || 0) === 1 ? '' : 's'}
-                </p>
-                {outfit.tags?.length ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {outfit.tags.slice(0, 4).map((tag) => (
-                      <span key={tag} className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                        {tag}
-                      </span>
-                    ))}
+      <motion.section variants={itemVariants} className="glass-card p-4 sm:p-6 rounded-2xl">
+        <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4">
+          <TabButton label="Description" isActive={activeTab === 'details'} onClick={() => setActiveTab('details')} />
+          <TabButton label="Care & Wear History" isActive={activeTab === 'history'} onClick={() => setActiveTab('history')} />
+          <TabButton label="Outfits" isActive={activeTab === 'outfits'} onClick={() => setActiveTab('outfits')} />
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.div key={activeTab} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }} transition={{ duration: 0.2 }} className="min-h-[150px]">
+            {activeTab === 'details' && <p className="text-sm text-gray-600 dark:text-gray-300">{cloth.description || 'No description provided.'}</p>}
+
+            {activeTab === 'history' && (
+              historyLoading ? <p>Loading history...</p> : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2"><History size={16} /> Wear Log</h4>
+                    <ul className="space-y-1">{wearHistory.map(log => <li key={log.id} className="flex items-center gap-2"><Tally1 size={14} className="flex-shrink-0" />Worn on {new Date(log.date).toLocaleDateString()}</li>)}</ul>
                   </div>
-                ) : null}
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2"><Sparkles size={16} /> Care Log</h4>
+                    <ul className="space-y-1">{washHistory.map(e => <li key={e.id} className="flex items-center gap-2">{e.action === 'wash' ? <Droplet size={14} /> : <Shirt size={14} />}{e.action === 'wash' ? 'Washed' : 'Pressed'} on {new Date(e.createdAt).toLocaleDateString()}</li>)}</ul>
+                    {careHasMore && <Button variant="link" size="sm" onClick={loadMoreCareHistory} disabled={isCareLoadingMore} className="mt-2">{isCareLoadingMore ? 'Loading...' : 'Load More'}</Button>}
+                  </div>
+                </div>
+              )
+            )}
 
-      <ClothModal
-        open={isEditModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        initialData={cloth}
-        onSubmit={async (updated) => {
-          await updateCloth(clothId, updated);
-          setEditModalOpen(false);
-        }}
-      />
+            {activeTab === 'outfits' && (relatedOutfits.length > 0 ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{relatedOutfits.map(o => <button key={o.id} onClick={() => navigate(`/wardrobe/outfit/${o.id}`)} className="p-3 rounded-lg text-left hover-highlight"><strong>{o.name}</strong><p className="text-xs text-gray-500">{o.clothIds.length} items</p></button>)}</div> : <p>Not in any outfits yet.</p>)}
+          </motion.div>
+        </AnimatePresence>
+      </motion.section>
 
+      <ClothModal open={isEditModalOpen} onClose={() => setEditModalOpen(false)} initialData={cloth} onSubmit={async (d) => await updateCloth(clothId, d)} />
+      <ClothModal open={isDuplicateModalOpen} onClose={() => setIsDuplicateModalOpen(false)} initialData={cloth} isEditMode={false}/>
       <ConfirmationModal
         open={isConfirmDeleteOpen}
         onClose={() => setConfirmDeleteOpen(false)}
         onConfirm={handleDelete}
-        title="Delete Cloth?"
-        message={`Are you sure you want to delete "${cloth.name}"? This action cannot be undone.`}
+        title="Delete Item?"
+        message={deleteMessage}
+        confirmText="Delete"
         isDanger
       />
-    </main>
+    </motion.main>
   );
 }

@@ -1,4 +1,5 @@
 import { ClothService } from '../crud/cloth.service';
+import { WashHistoryService } from '../crud/wash-history.service';
 import { Cloth } from '../model/cloth.model';
 
 interface WashResult {
@@ -50,6 +51,12 @@ export const LaundryService = {
           if (updatedCloth.status === ClothService.STATUSES.NEEDS_PRESSING) {
             needsPressing.push(updatedCloth);
           }
+
+          try {
+            await WashHistoryService.logEvent(clothId, 'wash');
+          } catch (error) {
+            console.warn(`Failed to log wash event for cloth ${clothId}`, error);
+          }
         }
       }
     }
@@ -75,6 +82,12 @@ export const LaundryService = {
         });
         if (updatedCloth) {
           pressedClothes.push(updatedCloth);
+
+          try {
+            await WashHistoryService.logEvent(clothId, 'press');
+          } catch (error) {
+            console.warn(`Failed to log press event for cloth ${clothId}`, error);
+          }
         }
       }
     }

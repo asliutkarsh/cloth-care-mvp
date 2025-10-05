@@ -1,107 +1,91 @@
-// src/components/wardrobe/ClothRow.jsx
-import React from 'react'
-import { Heart } from 'lucide-react'
-import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
-import { useWardrobeStore } from '../../stores/useWardrobeStore'
+import React, { useEffect } from 'react';
+import { Heart } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { useWardrobeStore } from '../../stores/useWardrobeStore';
+import useClothData from '../../hooks/useClothData';
+import AnimatedCheckbox from '../ui/AnimatedCheckbox';
 
-export default function ClothRow({ cloth, category, isSelectMode, isSelected, onSelectToggle }) {
-  const { updateCloth } = useWardrobeStore()
-  const navigate = useNavigate()
-  const statusMap = {
-    clean: { tagClass: 'tag-clean', label: 'Clean' },
-    dirty: { tagClass: 'tag-dirty', label: 'Dirty' },
-    needs_pressing: { tagClass: 'bg-accent-cyan/15 text-accent-cyan ring-1 ring-accent-cyan/30 rounded-full px-2 py-0.5 text-xs font-medium', label: 'Needs Pressing' },
-  }
-  const status = statusMap[cloth.status] || { tagClass: 'tag', label: 'Unknown' }
-  const icon = category?.icon || '👕'
-  const colorValue = cloth.color || '#e5e7eb'
-  const wearCount = cloth.currentWearCount ?? 0
-  const rawCost = typeof cloth.cost === 'number' ? cloth.cost : Number(cloth.cost || 0)
-  const hasCost = Number.isFinite(rawCost) && rawCost > 0
-  const costPerWear = hasCost && wearCount > 0 ? rawCost / wearCount : rawCost
-  const costPerWearLabel = hasCost
-    ? wearCount > 0
-      ? `$${costPerWear.toFixed(2)}/wear`
-      : `$${rawCost.toFixed(2)} total`
-    : null
+function ClothRow({ cloth, isSelectMode = false, isSelected = false, onSelectToggle, categories = [] }) {
+  const { updateCloth } = useWardrobeStore();
+  const navigate = useNavigate();
+
+  const { status, categoryName, colorValue } = useClothData(cloth, categories);
 
   const handleClick = () => {
     if (isSelectMode) {
-      onSelectToggle?.(cloth.id)
+      onSelectToggle?.(cloth.id);
     } else {
-      navigate(`/wardrobe/cloth/${cloth.id}`)
+      navigate(`/wardrobe/cloth/${cloth.id}`);
     }
-  }
+  };
 
   return (
-    <motion.button
-      type="button"
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -50 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       onClick={handleClick}
-      whileHover={{ scale: 1.005 }}
-      whileTap={{ scale: 0.995 }}
-      className={`w-full grid grid-cols-[56px_1fr_auto] items-center gap-3 px-3 py-2 rounded-lg border border-coolgray-500/30 dark:border-coolgray-700/40 bg-white/80 dark:bg-gray-800/80 backdrop-blur hover-highlight text-left ${isSelected ? 'ring-2 ring-primary-deep' : ''}`}
+      className={`relative w-full flex items-center gap-4 px-3 py-2 rounded-xl border transition-all cursor-pointer ${isSelected
+          ? 'border-primary-500/50 bg-primary-500/10 ring-2 ring-primary-500'
+          : 'border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-800/70 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+        }`}
     >
-      <div className="w-14 h-14 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-        {cloth.image ? (
-          <img src={cloth.image} alt={cloth.name} className="w-full h-full object-cover" />
-        ) : (
-          <div
-            className="w-12 h-12 rounded-full border border-white/40 dark:border-black/20 flex items-center justify-center text-xl shadow-inner"
-            style={{ backgroundColor: colorValue }}
-            aria-label={`Color swatch: ${colorValue}`}
-            title={colorValue}
+      {/* --- Selection Checkbox (Single, on the left) --- */}
+      <AnimatePresence>
+        {isSelectMode && (
+          <motion.div
+            initial={{ opacity: 0, width: 0, marginRight: -16 }}
+            animate={{ opacity: 1, width: 'auto', marginRight: 0 }}
+            exit={{ opacity: 0, width: 0, marginRight: -16 }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <span className="leading-none drop-shadow-sm">{icon}</span>
-          </div>
+            <AnimatedCheckbox
+              checked={isSelected}
+              onChange={() => onSelectToggle?.(cloth.id)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* --- Image/Fallback --- */}
+      <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+        {cloth.image ? (
+          <img src={cloth.image} alt={cloth.name} className="w-full h-full object-cover" loading="lazy" />
+        ) : (
+          <div className="w-full h-full" style={{ backgroundColor: colorValue }} />
         )}
       </div>
 
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <h4 className="font-semibold truncate">{cloth.name}</h4>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-            <span
-              className="w-3.5 h-3.5 rounded-full border border-white/40 dark:border-black/20"
-              style={{ backgroundColor: colorValue }}
-              aria-label={`Color swatch: ${colorValue}`}
-              title={colorValue}
-            />
-            <span className="leading-none">{icon}</span>
-            <span className="leading-none max-w-[10rem] truncate">{category?.name || 'Uncategorized'}</span>
-          </span>
-        </div>
-        <div className="text-xs text-gray-500 mt-1 flex items-center gap-3">
-          <span>Worn {wearCount}</span>
+      {/* --- Main Content (Simplified for scannability) --- */}
+      <div className="flex-1 min-w-0">
+        <h4 className="font-semibold truncate">{cloth.name}</h4>
+        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-2">
+          <span>{categoryName}</span>
+          <span>•</span>
           <span className={status.tagClass}>{status.label}</span>
-          {costPerWearLabel && (
-            <span className="text-primary-deep dark:text-primary-bright font-medium">
-              {costPerWearLabel}
-            </span>
-          )}
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      {/* --- Favorite Button --- */}
+      <div className="flex-shrink-0">
         <button
-          className="p-1 rounded-full bg-white/80 dark:bg-gray-900/80 border border-white/30 dark:border-white/10 shadow hover-highlight"
+          className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           onClick={(e) => {
             e.stopPropagation();
-            updateCloth(cloth.id, { favorite: !cloth.favorite })
+            updateCloth(cloth.id, { favorite: !cloth.favorite });
           }}
           aria-label={cloth.favorite ? 'Remove from favorites' : 'Add to favorites'}
         >
-          <Heart className={`w-4 h-4 ${cloth.favorite ? 'fill-current text-red-500' : 'text-gray-500 dark:text-gray-300'}`} />
-        </button>
-        {isSelectMode && (
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => onSelectToggle?.(cloth.id)}
-            onClick={(e) => e.stopPropagation()}
+          <Heart
+            className={`w-4 h-4 transition-all ${cloth.favorite ? 'fill-red-500 text-red-500' : 'text-gray-400 dark:text-gray-500'}`}
           />
-        )}
+        </button>
       </div>
-    </motion.button>
-  )
+    </motion.div>
+  );
 }
+
+export default React.memo(ClothRow);

@@ -151,5 +151,5 @@ export const INSIGHT_MODULES = [
   },
 ];
 
-export const MIN_MODULES = 4;
-export const MAX_MODULES = 6;
+export const MIN_MODULES = 3;
+export const MAX_MODULES = 4;
