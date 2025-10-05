@@ -12,7 +12,8 @@ export const KEYS = {
   ACTIVITY_LOGS: 'activity_logs',
   PREFERENCES: 'preferences',
   USER: 'user',
-  AUDIT_LOGS: 'audit_logs',
+  ESSENTIALS: 'essentials',
+  WARDROBE_WASH_HISTORY: 'wardrobe_wash_history',
 } as const;
 
 // --- 2. Database Schema ---
@@ -24,7 +25,8 @@ db.version(1).stores({
   [KEYS.ACTIVITY_LOGS]: 'id',
   [KEYS.PREFERENCES]: 'id',
   [KEYS.USER]: 'id',
-  [KEYS.AUDIT_LOGS]: 'id',
+  [KEYS.ESSENTIALS]: 'id',
+  [KEYS.WARDROBE_WASH_HISTORY]: 'id',
 });
 
 // --- 3. Data Migration from localStorage ---

@@ -3,19 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Heart } from "lucide-react";
 import { useWardrobeStore } from "../../stores/useWardrobeStore";
-
-const DEFAULT_CATEGORY = { name: "Unknown", icon: "❓" };
-
-const findCategoryById = (categoryTree = [], targetId) => {
-  if (!targetId) return null;
-  for (const node of categoryTree) {
-    if (node?.id === targetId) return node;
-    const childMatch = findCategoryById(node?.children || [], targetId);
-    if (childMatch) return childMatch;
-  }
-  return null;
-};
-export default function ClothCard({
+import useClothData from "../../hooks/useClothData";
+function ClothCard({
   cloth,
   isSelectMode = false,
   selected = false,
@@ -23,63 +12,16 @@ export default function ClothCard({
 }) {
   const navigate = useNavigate();
   const { categories = [], updateCloth } = useWardrobeStore();
-
-  const statusMap = {
-    clean: {
-      tagClass: "tag-clean",
-      ringClass: "status-ring-clean",
-      label: "Clean",
-    },
-    dirty: {
-      tagClass: "tag-dirty",
-      ringClass: "status-ring-dirty",
-      label: "Dirty",
-    },
-    needs_pressing: {
-      tagClass:
-        "bg-accent-cyan/15 text-accent-cyan ring-1 ring-accent-cyan/30 rounded-full px-2 py-0.5 text-xs font-medium",
-      ringClass: "status-ring-new",
-      label: "Needs Pressing",
-    },
-  };
-
-  const status = statusMap[cloth.status] || {
-    tagClass: "tag",
-    ringClass: "",
-    label: "Unknown",
-  };
-
-  const rawCategory = cloth.category;
-  const categoryId =
-    cloth.categoryId ??
-    (typeof rawCategory === "object" && rawCategory?.id) ??
-    (typeof rawCategory === "string" || typeof rawCategory === "number"
-      ? rawCategory
-      : null);
-  const resolvedCategory = findCategoryById(categories, categoryId);
-  const categoryData =
-    resolvedCategory ||
-    (typeof rawCategory === "object" && (rawCategory.name || rawCategory.icon)
-      ? rawCategory
-      : null) ||
-    DEFAULT_CATEGORY;
-  const categoryIcon = categoryData.icon || DEFAULT_CATEGORY.icon;
-  const categoryName = categoryData.name || DEFAULT_CATEGORY.name;
-
-  const hasColor =
-    typeof cloth.color === "string" && cloth.color.trim().length > 0;
-  const colorValue = hasColor ? cloth.color : "#d1d5db";
-  const colorLabel = hasColor ? cloth.color : "Neutral color";
-
-  const wearCount = cloth.currentWearCount ?? 0;
-  const cost = typeof cloth.cost === "number" ? cloth.cost : Number(cloth.cost || 0);
-  const hasCost = Number.isFinite(cost) && cost > 0;
-  const costPerWear = hasCost && wearCount > 0 ? cost / wearCount : cost;
-  const costPerWearLabel = hasCost
-    ? wearCount > 0
-      ? `$${costPerWear.toFixed(2)} per wear`
-      : `$${cost.toFixed(2)} total`
-    : null;
+  
+  const {
+    status,
+    categoryIcon,
+    categoryName,
+    colorValue,
+    colorLabel,
+    wearCount,
+    costPerWearLabel
+  } = useClothData(cloth, categories);
 
   const handleClick = () => {
     if (isSelectMode) {
@@ -176,7 +118,7 @@ export default function ClothCard({
           {cloth.name}
         </h4>
         <p className="text-xs text-gray-600 dark:text-gray-300">
-          Worn {cloth.currentWearCount ?? 0} {cloth.currentWearCount === 1 ? "time" : "times"}
+          Worn {wearCount} {wearCount === 1 ? "time" : "times"}
         </p>
         {costPerWearLabel && (
           <p className="text-xs font-medium text-primary-deep dark:text-primary-bright">
@@ -187,3 +129,16 @@ export default function ClothCard({
     </motion.div>
   );
 }
+
+// Performance optimization: Only re-render if props change
+const areEqual = (prevProps, nextProps) => {
+  return (
+    prevProps.cloth?.id === nextProps.cloth?.id &&
+    prevProps.isSelectMode === nextProps.isSelectMode &&
+    prevProps.selected === nextProps.selected &&
+    // Deep compare cloth object
+    JSON.stringify(prevProps.cloth) === JSON.stringify(nextProps.cloth)
+  );
+};
+
+export default React.memo(ClothCard, areEqual);

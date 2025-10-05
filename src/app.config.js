@@ -1,103 +1,129 @@
-export const APP_VERSION = "1.6.0";
+export const APP_VERSION = "1.7.0";
 
 export const WHATS_NEW = [
+  {
+    version: "1.7.0",
+    date: "2025-10-05",
+    changes: [
+      "🧳 Manage your packing essentials with the all-new **Essentials Page** — add, edit, and delete items easily.",
+      "⚙️ New **Wardrobe Settings** to customize your default view and sort preferences.",
+      "📂 Improved **Category Management** with subcategories and item counts.",
+      "🧵 Smarter cloth tracking using enhanced data handling and status management.",
+      "🚀 App performance boosted with new global state and cleaner data handling."
+    ]
+  },
   {
     version: "1.6.0",
     date: "2025-10-02",
     changes: [
-      "About page added with easy access to app information.",
-      "Changelog modal added to view version history directly in-app.",
-      "Image uploads now support compression for faster and smaller uploads."
+      "ℹ️ **About Page** added with easy access to app details.",
+      "🕓 **Changelog Modal** lets you view version history directly in the app.",
+      "🖼️ Image uploads now use compression for faster and lighter uploads."
     ]
   },
   {
     version: "1.5.1",
     date: "2025-09-30",
     changes: [
-      "Plan your outfits and track activities with the new Activity Log “Planned” status.",
-      "Dashboard now shows planned outfits for the day with easy confirmation.",
-      "Settings page updated with Data & Privacy warning and demo default items."
+      "🗓️ Plan your outfits with the new **Activity Log “Planned”** status.",
+      "✅ Dashboard now shows planned outfits with quick confirm actions.",
+      "⚠️ Settings updated with **Data & Privacy** warning and demo default items."
     ]
   },
   {
     version: "1.5.0",
     date: "2025-09-29",
     changes: [
-      "Insights Dashboard added for wardrobe activities and financial overview.",
-      "New modules and hero insights help track stats and wardrobe usage.",
-      "Enhanced navigation with Insights and Trips sections, plus new settings options."
+      "📊 **Insights Dashboard** added for wardrobe stats and financial overview.",
+      "🌟 New **Hero Insights** and modules to track wardrobe usage.",
+      "🧭 Improved navigation with **Insights** and **Trips** sections."
     ]
   },
   {
     version: "1.4.1",
     date: "2025-09-28",
     changes: [
-      "Demo login added for quick app access.",
-      "Default outfits now marked as favorites for easier selection.",
-      "Skeleton screens added for smoother page loading experience."
+      "🔑 **Demo Login** added for instant app access.",
+      "❤️ Default outfits marked as favorites for quicker selection.",
+      "💨 Added **Skeleton Screens** for smoother loading experience."
     ]
   },
   {
     version: "1.4.0",
     date: "2025-09-20",
     changes: [
-      "Outfit management improved with tag suggestions and preference updates.",
-      "Manage filters for clothes and outfits with new dedicated page and UI components.",
-      "Emoji Picker added for creating outfits with fun custom icons."
+      "👕 Outfit management improved with **tag suggestions** and preferences.",
+      "🧩 Manage filters for clothes and outfits with a new dedicated page.",
+      "😄 Added **Emoji Picker** for fun outfit customization."
     ]
   },
   {
     version: "1.3.1",
     date: "2025-09-18",
     changes: [
-      "PWA support added for offline usage.",
-      "New Logo component for consistent app branding.",
-      "Refreshed app backgrounds and layout styling for a cleaner look."
+      "📱 **PWA support** added — use the app offline!",
+      "🪶 New **Logo component** for consistent branding.",
+      "🎨 Refreshed app backgrounds and layouts for a cleaner look."
     ]
   },
   {
     version: "1.3.0",
     date: "2025-09-14",
     changes: [
-      "Laundry and Wardrobe pages redesigned with new lists and detail modals.",
-      "Enhanced filtering in Wardrobe for faster item searches."
+      "🧺 Redesigned **Laundry** and **Wardrobe** pages with new detail modals.",
+      "🔍 Improved **Wardrobe filtering** for faster item searches."
     ]
   },
   {
     version: "1.2.1",
     date: "2025-09-11",
     changes: [
-      "Profile page refreshed with updated UI.",
-      "Settings page improved for easier navigation and use."
+      "👤 **Profile Page** refreshed with updated UI.",
+      "⚙️ **Settings Page** improved for easier navigation."
     ]
   },
   {
     version: "1.2.0",
     date: "2025-09-10",
     changes: [
-      "New Category Management page: add, edit, and delete categories easily.",
-      "Settings now include category management and data import/export options."
+      "📁 New **Category Management Page** — add, edit, and delete categories.",
+      "🛠️ Settings now support **category management** and **data import/export**."
     ]
   },
   {
     version: "1.1.0",
     date: "2025-09-09",
     changes: [
-      "Calendar improved for better activity tracking and day interactions.",
-      "Activity Log added to view and delete past activities.",
-      "Dashboard navigation and layout improved for a smoother experience."
+      "🗓️ Improved **Calendar** for better activity tracking and day interactions.",
+      "📝 Added **Activity Log** to view and delete past activities.",
+      "🏠 **Dashboard** layout and navigation enhanced for smoother experience."
     ]
   },
   {
     version: "1.0.0",
     date: "2025-09-08",
     changes: [
-      "Initial release of ClothCare with wardrobe, laundry, and calendar management."
+      "🚀 Initial release of **ClothCare** with wardrobe, laundry, and calendar management."
     ]
   }
 ];
 
+
 export const CHANGELOG = [
+  {
+    version: "1.7.0",
+    date: "2025-10-05",
+    changes: [
+      { type: "Feature", description: "Implemented `useClothData` hook for enhanced cloth management with status, category resolution, and cost calculation." },
+      { type: "Feature", description: "Created CategoryManagementPage with recursive category display, subcategory management, and item counts." },
+      { type: "Feature", description: "Built Essentials management interface with add, edit, and delete functionality." },
+      { type: "Feature", description: "Developed WardrobeSettings page for user preferences (default view, sort order, and feedback handling)." },
+      { type: "Feature", description: "Added EssentialsService and WashHistoryService for CRUD operations and wash tracking." },
+      { type: "Feature", description: "Defined EssentialItem and EssentialInput interfaces for improved type safety." },
+      { type: "Improvement", description: "Enhanced app-wide state management with Zustand via useAppStore for loading and error tracking." },
+      { type: "Improvement", description: "Added utility functions for cloth status metadata and price formatting." }
+    ]
+  },
   {
     version: "1.6.0",
     date: "2025-10-02",

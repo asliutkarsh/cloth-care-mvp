@@ -5,3 +5,5 @@ export { OutfitService } from './outfit.service';
 export { PreferenceService } from './preference.service';
 export { TripService } from './trip.service';
 export { UserService } from './user.service';
+export { EssentialsService } from './essentials.service';
+export { WashHistoryService } from './wash-history.service';

@@ -42,12 +42,31 @@ export const CategoryService = {
   },
 
   /**
+   * Gets the depth of a category in the hierarchy.
+   * @private
+   */
+  async getCategoryDepth(categoryId: string, currentDepth = 0): Promise<number> {
+    const category = await this.getById(categoryId);
+    if (!category?.parentId) {
+      return currentDepth;
+    }
+    return this.getCategoryDepth(category.parentId, currentDepth + 1);
+  },
+
+  /**
    * Adds a new subcategory under a specified parent.
+   * @throws {Error} If parent is not found or max depth (2 levels) would be exceeded
    */
   async addSubCategory(parentId: string, categoryData: CategoryData): Promise<Category> {
     const parent = await this.getById(parentId);
     if (!parent) {
       throw new Error(`Parent category with id "${parentId}" not found.`);
+    }
+
+    // Check if adding this subcategory would exceed max depth of 2
+    const parentDepth = await this.getCategoryDepth(parentId);
+    if (parentDepth >= 1) { // If parent is already at depth 1 (second level)
+      throw new Error('Maximum category depth of 2 levels has been reached. Cannot add more subcategories.');
     }
 
     const newSubCategory: Category = {
@@ -72,9 +91,6 @@ export const CategoryService = {
    * Removes a category, but only if it has no children.
    */
   async remove(id: string): Promise<boolean> {
-    if (await this.hasChildren(id)) {
-      throw new Error("Cannot remove a category that has subcategories.");
-    }
     await StorageService.remove(StorageService.KEYS.CATEGORIES, id);
     return true;
   },
@@ -122,5 +138,10 @@ export const CategoryService = {
         }));
     };
     return buildTree();
+  },
+
+  async getSubCategories(categoryId: string): Promise<Category[]> {
+    const categories = await this.getAll();
+    return categories.filter(cat => cat.parentId === categoryId);
   },
 };

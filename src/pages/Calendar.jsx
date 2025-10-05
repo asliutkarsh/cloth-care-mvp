@@ -4,7 +4,6 @@ import { useCalendarStore } from '../stores/useCalendarStore';
 import { useWardrobeStore } from '../stores/useWardrobeStore';
 import AddActivityModal from '../components/modal/AddActivityModal';
 import {CalendarHeader, WeekdayHeader, CalendarGrid, ActivityLog } from '../components/calendar';
-import { BookOpenCheck } from 'lucide-react';
 import CalendarSkeleton from '../components/skeleton/CalendarSkeleton';
 
 const formatDateKey = (date) => {
@@ -16,25 +15,28 @@ const formatDateKey = (date) => {
 };
 
 export default function Calendar() {
-  // --- Get data and actions from Zustand stores ---
   const {
-    activities, outfits, cleanClothes, fetchAll: fetchCalendarData, addActivity,
-    getActivityDetails, isCalendarInitialized
+    activities, trips, // trips data is available from the store
+    isCalendarInitialized, addActivity, updateActivity, getActivityDetails, fetchAll,
   } = useCalendarStore();
   
-  // Get categories from the main wardrobe store to pass to the modal
+  // Get outfits and clean clothes from wardrobe store
+  const { outfits, clothes } = useWardrobeStore();
+  const allAvailableClothes = clothes.filter(cloth => !cloth.isArchived); 
   const categories = useWardrobeStore(state => state.categories);
 
-  // --- Local UI state for navigation and interaction ---
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // State for Edit and Copy functionality
+  const [activityToEdit, setActivityToEdit] = useState(null);
+  const [activityToCopy, setActivityToCopy] = useState(null);
   const [longPressTimer, setLongPressTimer] = useState(null);
 
-  const { date: dateFromParams } = useParams(); // For /calendar/YYYY-MM-DD
-  const [searchParams, setSearchParams] = useSearchParams(); // For /calendar?openAdd=1
+  const { date: dateFromParams } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Helper to safely parse date strings and avoid timezone bugs
   const parseDateString = useCallback((dateStr) => {    
     if (!dateStr) return null;
     const parts = dateStr.split('-').map(p => parseInt(p, 10));
@@ -45,9 +47,8 @@ export default function Calendar() {
     return null;
   }, []);
 
-  // --- Fetch initial data and handle routing effects ---
   useEffect(() => {
-    fetchCalendarData();
+    if (!isCalendarInitialized) fetchAll();
     
     const parsedDate = parseDateString(dateFromParams);
     if (parsedDate) {
@@ -61,21 +62,48 @@ export default function Calendar() {
       setShowAddModal(true);
       setSearchParams({}, { replace: true });
     }
-  }, [fetchCalendarData, dateFromParams, searchParams, setSearchParams, parseDateString]);
+  }, [fetchAll, dateFromParams, searchParams, setSearchParams, parseDateString, isCalendarInitialized]);
 
-  const handleAddActivity = async (activityData) => {
-    const parsedDate = parseDateString(activityData?.date);
-    const targetDate = parsedDate || selectedDate;
-    const dateKey = formatDateKey(targetDate);
-    await addActivity({ ...activityData, date: dateKey });
+  const handleModalClose = () => {
     setShowAddModal(false);
+    setActivityToEdit(null);
+    setActivityToCopy(null);
   };
+
+  const handleEditActivity = (activity) => {
+    setActivityToEdit(activity);
+    setShowAddModal(true);
+  };
+
+  const handleCopyActivity = (activity) => {
+    setActivityToCopy(activity);
+    setShowAddModal(true);
+  };
+
+  const handleSubmitActivity = async (activityData) => {
+    if (activityToEdit) {
+      // Update existing activity
+      await updateActivity(activityToEdit.id, activityData);
+    } else {
+      // Add new activity - Preserve the status from activityData
+      const parsedDate = parseDateString(activityData?.date);
+      const targetDate = parsedDate || selectedDate;
+      const dateKey = formatDateKey(targetDate);
+      await addActivity({ 
+        ...activityData, 
+        date: dateKey,
+        status: activityData.status // Ensure status is preserved
+      });
+    }
+    handleModalClose();
+  };
+  
   
   const handleLongPressStart = useCallback((date) => {
     const timer = setTimeout(() => {
       setSelectedDate(date);
       setShowAddModal(true);
-    }, 700); // 700ms delay
+    }, 700);
     setLongPressTimer(timer);
   }, []);
 
@@ -109,6 +137,7 @@ export default function Calendar() {
                 currentDate={currentDate}
                 selectedDate={selectedDate}
                 activities={activities}
+                trips={trips} // Pass trips data for emoji display
                 onDateClick={setSelectedDate}
                 onLongPressStart={handleLongPressStart}
                 onLongPressEnd={handleLongPressEnd}
@@ -123,19 +152,22 @@ export default function Calendar() {
             activitiesForDay={activitiesForSelectedDate}
             getActivityDetails={getActivityDetails}
             onAddActivity={() => setShowAddModal(true)}
+            onEditActivity={handleEditActivity}
+            onCopyActivity={handleCopyActivity}
           />
         </div>
       </div>
 
       <AddActivityModal
         open={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        onClose={handleModalClose}
         date={selectedDate}
-        time={null}
         outfits={outfits}
-        clothes={cleanClothes}
+        clothes={allAvailableClothes}
         categories={categories}
-        onSubmit={handleAddActivity}
+        onSubmit={handleSubmitActivity}
+        activityToEdit={activityToEdit}
+        activityToCopy={activityToCopy}
       />
     </div>
   );

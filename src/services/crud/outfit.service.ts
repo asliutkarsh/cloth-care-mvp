@@ -111,6 +111,34 @@ export const OutfitService = {
     return true;
   },
 
+  async countClothReferences(clothId: string): Promise<number> {
+    const outfits = await this.getAll();
+    return outfits.reduce((count, outfit) => {
+      const hasCloth = Array.isArray(outfit.clothIds) && outfit.clothIds.includes(clothId);
+      return hasCloth ? count + 1 : count;
+    }, 0);
+  },
+
+  async removeClothReferences(clothId: string): Promise<number> {
+    const outfits = await this.getAll();
+    const updates: Outfit[] = [];
+
+    for (const outfit of outfits) {
+      const originalIds = outfit.clothIds || [];
+      const filteredIds = originalIds.filter((id) => id !== clothId);
+
+      if (filteredIds.length !== originalIds.length) {
+        updates.push({ ...outfit, clothIds: filteredIds });
+      }
+    }
+
+    if (updates.length > 0) {
+      await StorageService.bulkUpdate(StorageService.KEYS.OUTFITS, updates);
+    }
+
+    return updates.length;
+  },
+
   /**
    * Retrieves all the full cloth objects for a given outfit.
    */

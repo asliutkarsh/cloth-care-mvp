@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useThemeStore } from '../stores/useThemeStore';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Calendar } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 import Logo from '../components/ui/Logo';
 
@@ -20,6 +20,8 @@ export default function Navbar() {
   const navigate = useNavigate();
   const isLanding = location.pathname === '/';
 
+  const isMobile = window.innerWidth < 768;
+
   const renderNavActions = () => {
     if (!user) {
       return <ThemeToggle />;
@@ -36,6 +38,21 @@ export default function Navbar() {
           Dashboard
           <ChevronRight className="w-4 h-4" />
         </motion.button>
+      );
+    }
+
+    if (isMobile && !isLanding) {
+      return (
+        <Link
+          to="/calendar"
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${location.pathname === '/calendar'
+              ? 'bg-primary-activeBg text-white shadow-sm'
+              : 'text-coolgray-700 dark:text-coolgray-500 hover-highlight'
+            }`}
+        >
+          <Calendar className={`w-5 h-5 ${location.pathname === '/calendar' ? 'text-white' : 'text-coolgray-500 dark:text-coolgray-500'}`} />
+          <span className="text-sm font-medium">Calendar</span>
+        </Link>
       );
     }
   };

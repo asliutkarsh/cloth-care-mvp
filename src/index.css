@@ -61,6 +61,8 @@
 	.tag-worn { @apply tag bg-status-worn/20 dark:bg-status-worn/25 text-status-worn ring-1 ring-status-worn/30 dark:ring-status-worn/40; }
 	.tag-dirty { @apply tag bg-status-dirty/15 dark:bg-status-dirty/20 text-status-dirty ring-1 ring-status-dirty/30 dark:ring-status-dirty/40; }
 	.tag-new { @apply tag bg-status-new/15 dark:bg-status-new/20 text-status-new ring-1 ring-status-new/30 dark:ring-status-new/40; }
+	.tag-pressing { @apply tag bg-accent-cyan/15 dark:bg-accent-cyan/20 text-accent-cyan ring-1 ring-accent-cyan/30 dark:ring-accent-cyan/40; }
+	.tag-repair { @apply tag bg-amber-200/20 dark:bg-amber-500/20 text-amber-600 dark:text-amber-200 ring-1 ring-amber-400/40 dark:ring-amber-300/40; }
 
 	/* Status ring for avatars/thumbnails */
 	.status-ring { @apply relative inline-flex items-center justify-center rounded-full; }

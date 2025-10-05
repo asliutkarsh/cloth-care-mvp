@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import Navbar from './Navbar';
 import BottomNav from './BottomNav';
 import Sidebar from './Sidebar';
-import AddClothModal from '../components/modal/AddClothModal';
+import ClothModal from '../components/modal/ClothModal';
 import OutfitModal from '../components/modal/OutfitModal';
 import ChangelogModal from '../components/modal/ChangelogModal';
 import { useWardrobeStore } from '../stores/useWardrobeStore';
@@ -67,10 +67,11 @@ export default function AppLayout() {
       />
 
       {isAddClothModalOpen && (
-        <AddClothModal
+        <ClothModal
           open={isAddClothModalOpen}
           onClose={() => setAddClothModalOpen(false)}
-          onAdd={handleAddCloth}
+          onSubmit={handleAddCloth}
+          isEditMode={false}
         />
       )}
 
